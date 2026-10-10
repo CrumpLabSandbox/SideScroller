@@ -194,6 +194,67 @@ const LINES = [
   },
 ];
 
+// The Mind: lines spoken while you are a figment inside the writer's head.
+LINES.mind = {
+  enter: [
+    'You fell out of the story, and into the mind that was writing it.',
+    hint('In here you’re a figment. Collect words. Get heavy enough and you’ll fall into a book.'),
+    hint('Hold jump to drift. Ideas are light, at first.'),
+  ],
+  again: [
+    'Out of the story again. In here, words are weight.',
+    'Back in the mind. Gather what you can.',
+    'You fell between the lines again. It’s warm in here.',
+  ],
+  stage1: 'A notion. Barely anything. Keep going.',
+  stage2: 'An idea now. Still light enough to float.',
+  stage3: 'A premise. It’s starting to have weight.',
+  gravity: 'A story. It has gravity now. Let it fall.',
+  cliche: ['A cliché. It cost you a word.', 'All of a sudden, at the end of the day, you lost a word.'],
+  erased: ['Erased. The writer had second thoughts about you.', 'Struck out. Back to the page you came from.'],
+  forgotten: ['Forgotten, which is a kind of mercy. Back to the page.', 'You slipped out of mind. It happens to the best ideas.'],
+  ambient: [
+    'Somewhere in here is every book that hasn’t been written yet.',
+    'The margins are full of things that almost happened.',
+    'Half these words belong to the book you fell out of. The other half are waiting for the next one.',
+  ],
+};
+
+// Vocabulary for each book, used by the Mind. Single words and short phrases, nothing quoted.
+export const WORDS = {
+  genre: ['jump', 'coin', 'level', 'hero', 'run', 'flag', 'bonus', 'warp', 'secret', 'extra life', 'power-up', 'checkpoint', 'high score', 'boss', 'continue'],
+  tail: ['rain', 'fedora', 'karma', 'gumshoe', 'alibi', 'streetlight', 'client', 'the case', 'trench coat', 'informant', 'gutter', 'question', 'the file', 'tail', 'neon'],
+  stoop: ['stoop', 'pink ball', 'brownstone', 'summer', 'comics', 'tag', 'hydrant', 'the block', 'radio', 'dime', 'fire escape', 'soul record', 'skully', 'chalk', 'bodega'],
+  flight: ['ring', 'flight', 'cape', 'rooftop', 'invisible', 'secret', 'sky', 'unseen', 'alone', 'power', 'the catch', 'hero', 'vanish', 'falling', 'wish'],
+  dream: ['dream', 'county', 'moon', 'Sunday', 'dreamer', 'road', 'map', 'sign', 'rule', 'sleepwalk', 'horizon', 'amnesia', 'static', 'drive-in', 'mirage'],
+  lack: ['void', 'hole', 'absence', 'physicist', 'particle', 'salt', 'flats', 'desire', 'nothing', 'selective', 'lab', 'taste', 'hunger', 'vacuum', 'longing'],
+  gray: ['fog', 'tiger', 'vase', 'rumor', 'headline', 'skyline', 'haze', 'billboard', 'crack', 'the city', 'insomnia', 'smoke', 'apartment', 'gossip', 'gray'],
+  arrest: ['silence', 'engine', 'stop', 'quiet', 'candle', 'bicycle', 'bread', 'barter', 'unplugged', 'stillness', 'well water', 'dusk', 'harvest', 'road', 'slow'],
+  influence: ['collage', 'borrowed', 'echo', 'homage', 'sample', 'quote', 'influence', 'remix', 'palimpsest', 'scissors', 'glue', 'gift', 'theft', 'tribute', 'mixtape'],
+  mind: ['maybe', 'almost', 'sentence', 'margin', 'draft', 'comma', 'paragraph', 'notebook', 'someday', 'what if', 'chapter', 'ellipsis', 'footnote', 'revision', 'page'],
+};
+
+// Sentence templates the Mind builds its platforms from. {a} and {b} are filled from the vocabulary.
+export const SENTENCES = [
+  'the {a} kept a {b} in its pocket',
+  'nobody believed in the {a}',
+  'every {a} is a kind of {b}',
+  'somewhere a {a} was waiting',
+  '{a}, then {b}, then less',
+  'the {a} remembered the {b}',
+  'it was mostly {a}',
+  'a {a} with nowhere to go',
+  'the {a} insisted on {b}',
+  'call it {a}',
+  'what if the {a} were {b}',
+  'not {a} exactly, more like {b}',
+];
+
+export const CLICHES = [
+  'all of a sudden', 'at the end of the day', 'a dark and stormy night', 'little did they know',
+  'it was all a dream', 'only time will tell', 'in the nick of time',
+];
+
 const asLine = (l) => (typeof l === 'string' ? { text: l, hint: false } : l);
 
 export class Story {
@@ -285,6 +346,22 @@ export class Story {
       this.ui.chapterCard(card);
       this.after(2.8, queueEnter);
     }
+  }
+
+  enterMind(first) {
+    this.ci = 'mind';
+    this.clear();
+    for (const k of [...this.used]) if (k.startsWith('special:mind')) this.used.delete(k);
+    this.ambientT = 24;
+    if (first) for (const l of LINES.mind.enter) this.say(l);
+    else this.say(LINES.mind.again[Math.floor(Math.random() * LINES.mind.again.length)]);
+  }
+
+  leaveMind(ci, line) {
+    this.ci = ci;
+    this.clear();
+    if (line) this.say(line);
+    this.ambientT = 30;
   }
 
   after(t, fn) { this.timers.push({ t, fn }); }

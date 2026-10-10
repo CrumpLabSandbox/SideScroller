@@ -36,6 +36,7 @@ html, body {
 #hearts { letter-spacing: 2px; font-size: 20px; color: #ff4f6a; }
 #hearts .heart.off { color: rgba(255,255,255,.25); }
 .hud-score { margin-left: auto; margin-right: auto; font-size: 22px; min-width: 70px; text-align: center; font-variant-numeric: tabular-nums; display: flex; align-items: baseline; gap: 6px; justify-content: center; }
+body.in-mind #hearts, body.in-mind #score, body.in-mind .hud-coins { visibility: hidden; }
 #score-label { font-size: 10px; letter-spacing: 2px; opacity: .75; }
 #score-label:empty { display: none; }
 #hud.arrested .hud-item { animation: unbolt 1.6s cubic-bezier(.5,0,.9,.5) forwards; }

@@ -3,6 +3,8 @@
 A side-scrolling platformer for the web, built for phones, that slowly turns into a novel as you run.
 It opens as a cheerful platformer; over about 1.6 km it drifts through eight chapters written in homage
 to Jonathan Lethem's books, reaches an ending, and continues as an endless afterword.
+Nobody dies: run out of hearts and you fall into the writer's mind, a level drawn entirely in words,
+where you play as a figment of an idea gathering words until it is heavy enough to fall into a book.
 No dependencies, no build step.
 
 **Play:** https://crumplabsandbox.github.io/SideScroller/

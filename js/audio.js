@@ -59,6 +59,10 @@ const ARR = {
     ],
     leadWave: 'triangle', leadVol: 0.22, leadLen: 1.6, hat: 'odd',
   },
+  mind: {
+    bpm: 72, bass: [38, 41, 45, 43, 38, 41, 36, 40], bassMode: 'long',
+    arp: [0, 7, 12, 16, 19, 16, 12, 7], leadWave: 'sine', leadVol: 0.1, hat: 'type',
+  },
   collage: { collage: ['bright', 'noir', 'swing', 'dream', 'arrest', 'flight'] },
 };
 
@@ -161,6 +165,10 @@ export class Sound {
       case 'crumble': this.noise(0.5, 0.35, 0, { type: 'lowpass', freq: 400 }); this.tone({ f0: 90, f1: 40, type: 'sawtooth', dur: 0.4, vol: 0.18 }); break;
       case 'rumble': this.noise(0.35, 0.18, 0, { type: 'lowpass', freq: 220 }); break;
       case 'vase': [1047, 1319, 1568, 2093].forEach((f, i) => this.tone({ f0: f, type: 'sine', dur: 0.9, vol: 0.12, delay: i * 0.12, attack: 0.03 })); break;
+      case 'word': this.noise(0.03, 0.4, 0, { type: 'bandpass', freq: 2400 }); this.tone({ f0: 1300, f1: 900, dur: 0.05, vol: 0.06 }); break;
+      case 'ding': [1568, 2093].forEach((f, i) => this.tone({ f0: f, type: 'sine', dur: 1.4, vol: 0.2 - i * 0.08, delay: i * 0.02, attack: 0.005 })); break;
+      case 'erase': this.noise(0.45, 0.3, 0, { type: 'highpass', freq: 1800 }); this.tone({ f0: 700, f1: 120, type: 'triangle', dur: 0.45, vol: 0.18 }); break;
+      case 'page': this.noise(0.3, 0.3, 0, { type: 'bandpass', freq: 1100 }); this.tone({ f0: 392, type: 'triangle', dur: 0.8, vol: 0.15, delay: 0.1, attack: 0.03 }); break;
       case 'gameover': [440, 415, 392, 349].forEach((f, i) => this.tone({ f0: f, f1: f * 0.98, type: 'sawtooth', dur: 0.28, vol: 0.22, delay: i * 0.22 })); break;
       case 'start': [523, 659, 784].forEach((f, i) => this.tone({ f0: f, dur: 0.1, vol: 0.2, delay: i * 0.06 })); break;
     }
@@ -228,6 +236,7 @@ export class Sound {
       }
     }
     if (L.perc) {
+      if (A.hat === 'type' && (step * 7) % 5 < 2) this.noise(0.018, 0.1, delay, { dest: mus, type: 'bandpass', freq: 2600 });
       if ((A.hat === 'odd' && beat % 2 === 1) || (A.hat === 'swing' && (beat === 3 || beat === 7))) {
         this.noise(0.03, 0.12, delay, { dest: mus, type: 'highpass', freq: 6000 });
       }

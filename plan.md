@@ -23,7 +23,8 @@ js/main.js             bootstrap, resize/DPR scaling, fixed-step loop, HUD/overl
 js/game.js             Game state machine, Player physics, enemies, platforms, pickups, camera, chapter beats
 js/level.js            tile grid + procedural chunk generator (chapter- and difficulty-aware)
 js/chapters.js         the book: chapter table (see novel-plan.md)
-js/story.js            narration lines and caption engine
+js/story.js            narration lines, Mind vocabulary, and caption engine
+js/mind.js             the Mind: the all-text level you fall into instead of dying
 js/render.js           per-chapter themes, parallax layers, tile skins, sprites, particles, overlays
 js/input.js            keyboard + multi-touch zones (left / right / jump) with edge detection
 js/audio.js            WebAudio synth SFX + per-chapter music arrangements, mute persisted
@@ -39,7 +40,7 @@ sw.js                  network-first service worker for offline play
 - **Player**: run accel/friction, max speed 290px/s, jump -720px/s (≈2.3 tiles), double jump,
   jump cut on release, 90ms coyote time, 120ms jump buffer. Stomping enemies bounces you.
 - **Hazards**: pits (lose a heart, respawn at checkpoint), spikes and enemy contact
-  (lose a heart, knockback, 1.6s invulnerability). 0 hearts → game over.
+  (lose a heart, knockback, 1.6s invulnerability). 0 hearts → you fall into the Mind (no game over).
 - **Pickups**: coins (+10), hearts (rare, on a high platform at checkpoints), checkpoint flags.
 - **Score**: distance (m) + coins×10 + stomps×25. Best score saved in localStorage.
 - **Chunks**: flat, gap, platforms, spikes, stairs, walkers, moving platform, bats, checkpoint.

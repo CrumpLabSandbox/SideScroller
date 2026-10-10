@@ -20,7 +20,7 @@ const params = new URLSearchParams(location.search);
 const debugChapter = params.has('chapter') ? clamp(+params.get('chapter') || 0, 0, LAST_CHAPTER) : null;
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
-const screens = { title: $('screen-title'), pause: $('screen-pause'), over: $('screen-over') };
+const screens = { title: $('screen-title'), pause: $('screen-pause') };
 let cardTimer = null;
 const ui = {
   hearts(n) {
@@ -36,7 +36,7 @@ const ui = {
     if (name) { $('caption').classList.remove('show'); }
     if (name === 'pause') {
       const ch = CHAPTERS[game.chapterIdx];
-      $('pause-chapter').textContent = game.chapterIdx > 0 ? `${ch.num} · ${ch.title}` : '';
+      $('pause-chapter').textContent = game.mind ? 'Inside the mind' : game.chapterIdx > 0 ? `${ch.num} · ${ch.title}` : '';
       updateSettingsBtns();
     }
   },
@@ -61,24 +61,9 @@ const ui = {
   },
   endCard(on) { $('end-card').classList.toggle('show', on); },
   arrestHud(on) { $('hud').classList.toggle('arrested', on); },
-  gameOver(r) {
-    $('over-score').textContent = r.score;
-    $('over-chapter').textContent = r.chapter > 0 ? CHAPTERS[r.chapter].title : 'Prologue';
-    $('over-dist').textContent = `${r.distance} m`;
-    $('over-coins').textContent = r.coins;
-    $('over-kills').textContent = r.kills;
-    $('over-best').textContent = r.best;
-    $('over-newbest').classList.toggle('hidden', !r.isBest);
-    const bm = bookmark();
-    $('btn-over-continue').classList.toggle('hidden', bm < 1);
-    if (bm >= 1) $('btn-over-continue').textContent = `↻ Continue from ${CHAPTERS[bm].num}`;
-    $('btn-retry').classList.toggle('primary', bm < 1);
-    $('btn-retry').classList.toggle('ghost', bm >= 1);
-    $('btn-retry').textContent = bm >= 1 ? 'Start over' : '↻ Play again';
-    $('end-card').classList.remove('show');
-    $('chapter-card').classList.remove('show');
-    $('hud').classList.remove('arrested');
-    this.show('over');
+  mindMode(on) {
+    document.body.classList.toggle('in-mind', on);
+    if (on) { $('chapter-card').classList.remove('show'); $('end-card').classList.remove('show'); }
   },
 };
 
@@ -134,11 +119,12 @@ function startGame(chapter) {
 $('btn-play').addEventListener('click', () => { startGame(0); if (isTouch) goFullscreen(); });
 $('btn-continue').addEventListener('click', () => { startGame(bookmark()); if (isTouch) goFullscreen(); });
 $('btn-fullscreen').addEventListener('click', () => { sound.unlock(); goFullscreen(); });
-$('btn-retry').addEventListener('click', () => startGame(0));
-$('btn-over-continue').addEventListener('click', () => startGame(bookmark()));
 $('btn-resume').addEventListener('click', () => { sound.unlock(); game.resume(); });
 $('btn-quit').addEventListener('click', () => {
+  game.recordBest();
   game.state = 'title';
+  game.mind = null;
+  ui.mindMode(false);
   sound.stopMusic();
   game.newGame(0);
   $('end-card').classList.remove('show');
@@ -155,7 +141,7 @@ $('btn-textsize').addEventListener('click', () => {
   writePref('hd_textsize', large ? 'large' : 'normal');
   updateSettingsBtns();
 });
-input.onPause = () => { if (['playing', 'respawn', 'paused'].includes(game.state)) game.togglePause(); };
+input.onPause = () => { if (['playing', 'respawn', 'mind', 'dying', 'paused'].includes(game.state)) game.togglePause(); };
 input.onMute = toggleMute;
 input.onAny = () => sound.unlock();
 
@@ -185,7 +171,7 @@ let last = performance.now(), acc = 0;
 let slowFrames = 0, sampled = 0;
 function adaptQuality(dt) {
   // If the game runs well below 60fps for a few seconds, render at a lower resolution.
-  if (game.state !== 'playing' || dprCap <= 1 || dt > 0.1) return;
+  if ((game.state !== 'playing' && game.state !== 'mind') || dprCap <= 1 || dt > 0.1) return;
   sampled++;
   if (dt > 1 / 45) slowFrames++;
   if (sampled >= 180) {
@@ -203,7 +189,7 @@ function frame(now) {
   while (acc >= STEP && n < 8) { game.step(STEP); acc -= STEP; n++; }
   if (n === 8) acc = 0;
   game.render(ctx, dpr, scale);
-  if (game.state === 'playing' && isTouch) {
+  if ((game.state === 'playing' || game.state === 'mind') && isTouch) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     drawTouchHints(ctx, input.zones, window.innerWidth, window.innerHeight, true);
   }

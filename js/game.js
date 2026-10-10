@@ -4,6 +4,7 @@ import { T, ROWS, SPIKE, LEVEL_BOTTOM, Level } from './level.js';
 import { CHAPTERS, LAST_CHAPTER } from './chapters.js';
 import { SIGN_TEXT, HEADLINES, readPref, writePref } from './story.js';
 import * as R from './render.js';
+import { Mind, drawWordRain } from './mind.js';
 
 const GRAVITY = 2300;
 const MAX_FALL = 1150;
@@ -76,6 +77,7 @@ export class Game {
     this.worldTime = 0; this.bgTime = 0; this.frozen = false;
     this.rule = null;
     this.arrest = { thin: false, hud: false, silence: false, ending: false };
+    this.mind = null; this.mindVisits = 0; this.distanceBank = 0; this.flash = 0; this.layersKey = null;
     this.sync();
     this.ui.hearts(this.hearts);
     this.ui.coins(0);
@@ -88,14 +90,14 @@ export class Game {
   }
 
   start(chapter = 0) {
-    if (this.state !== 'title' && this.state !== 'gameover') return;
+    if (this.state !== 'title') return;
     this.newGame(chapter);
     this.state = 'playing';
     this.input.reset();
     this.sound.play('start');
     this.sound.startMusic();
   }
-  pause() { if (this.state === 'playing' || this.state === 'respawn') { this.prevState = this.state; this.state = 'paused'; this.ui.show('pause'); } }
+  pause() { if (['playing', 'respawn', 'mind', 'dying'].includes(this.state)) { this.prevState = this.state; this.state = 'paused'; this.ui.show('pause'); } }
   resume() { if (this.state === 'paused') { this.state = this.prevState || 'playing'; this.input.reset(); this.ui.show(null); } }
   togglePause() { this.state === 'paused' ? this.resume() : this.pause(); }
 
@@ -193,7 +195,14 @@ export class Game {
   step(dt) {
     this.time += dt;
     if (!this.frozen) this.bgTime += dt;
-    if (this.state === 'paused' || this.state === 'gameover') return;
+    if (this.state === 'paused') return;
+    this.flash = Math.max(0, this.flash - dt * 1.6);
+    if (this.state === 'mind') {
+      this.mind.step(dt, this.VW, this.VH);
+      this.story.update(dt);
+      if (this.mind.result) this.exitMind(this.mind.result);
+      return;
+    }
     this.updateParticles(dt);
     this.shake = Math.max(0, this.shake - dt * 18);
     if (this.state === 'title') { this.cam.x += dt * 20; this.sync(); return; }
@@ -213,7 +222,7 @@ export class Game {
       p.vy = Math.min(p.vy + GRAVITY * dt, MAX_FALL);
       p.x += p.vx * dt; p.y += p.vy * dt;
       p.spin += dt * 9;
-      if (this.stateT > 1.5) this.gameOver();
+      if (this.stateT > 1.6) this.enterMind();
       return;
     }
 
@@ -244,7 +253,7 @@ export class Game {
 
     this.meter = p.x / T - 3;
     this.distance = Math.max(this.distance, this.meter - this.startMeter);
-    this.score = Math.max(0, Math.floor(this.distance) + this.coinCount * 10 + this.kills * 25 + this.bonus - this.karmaDock);
+    this.score = Math.max(0, Math.floor(this.distanceBank + this.distance) + this.coinCount * 10 + this.kills * 25 + this.bonus - this.karmaDock);
     this.ui.score(this.score);
     this.chapterBeats();
   }
@@ -265,11 +274,19 @@ export class Game {
     }
     if (ch.key === 'arrest') {
       const a = this.arrest;
-      if (!a.thin && prog >= 25) { a.thin = true; this.sound.setLayers({ perc: false }); this.story.special('thin'); }
+      // the music thins out with distance: everything, then no drums, then one voice, then nothing
+      const key = prog < 25 ? 'all' : prog < 85 ? 'thin' : prog < 120 ? 'one' : 'none';
+      if (key !== this.layersKey) {
+        this.layersKey = key;
+        this.sound.setLayers({ all: {}, thin: { perc: false }, one: { perc: false, bass: false }, none: { perc: false, bass: false, lead: false } }[key]);
+      }
+      if (!a.thin && prog >= 25) { a.thin = true; this.story.special('thin'); }
       if (!a.hud && prog >= 55) { a.hud = true; this.ui.arrestHud(true); this.story.special('hud'); }
-      if (prog >= 85 && prog < 120) this.sound.setLayers({ perc: false, bass: false });
-      if (!a.silence && prog >= 120) { a.silence = true; this.sound.setLayers({ perc: false, bass: false, lead: false }); this.story.special('silence'); }
+      if (!a.silence && prog >= 120) { a.silence = true; this.story.special('silence'); }
       if (!a.ending && prog >= 175) { a.ending = true; this.story.special('ending'); }
+    } else if (this.layersKey) {
+      this.layersKey = null;
+      this.sound.setLayers({});
     }
   }
 
@@ -666,6 +683,7 @@ export class Game {
     }
   }
 
+  // Nobody dies in this book. Out of hearts, you tumble off the page and into the writer's mind.
   die() {
     const p = this.player;
     p.dead = true;
@@ -673,18 +691,81 @@ export class Game {
     this.state = 'dying'; this.stateT = 0;
     this.shake = 1.2;
     this.story.clear();
-    this.sound.play('gameover');
-    this.sound.stopMusic();
+    this.sound.play('fall');
   }
 
-  gameOver() {
-    this.state = 'gameover';
-    const isBest = this.score > this.best;
-    if (isBest) { this.best = this.score; writePref('hd_best', String(this.best)); }
-    this.ui.gameOver({
-      score: this.score, distance: Math.floor(this.distance), coins: this.coinCount, kills: this.kills, best: this.best, isBest,
-      chapter: this.chapterIdx,
-    });
+  recordBest() {
+    if (this.score > this.best) { this.best = this.score; writePref('hd_best', String(this.best)); }
+  }
+
+  enterMind() {
+    this.recordBest();
+    const from = this.chapterIdx, next = Math.min(LAST_CHAPTER, from + 1);
+    this.mind = new Mind({ from, next, input: this.input, sound: this.sound, story: this.story });
+    this.state = 'mind'; this.stateT = 0;
+    this.input.reset();
+    this.ui.mindMode(true);
+    this.sound.setArrangement('mind');
+    this.sound.setLayers({});
+    this.layersKey = null;
+    this.story.enterMind(this.mindVisits === 0);
+    this.mindVisits++;
+  }
+
+  // Leave the mind: erased or forgotten sends you back to your last checkpoint; literary
+  // gravity drops you into whichever book you carried more words from.
+  exitMind(res) {
+    const m = this.mind;
+    this.mind = null;
+    this.ui.mindMode(false);
+    let line;
+    if (res.type === 'book') {
+      const ch = CHAPTERS[res.chapter];
+      this.bonus += m.count * 5;
+      line = res.chapter > this.chapterIdx ? `You fell into ${ch.title}.` : `You fell back into ${ch.title}, heavier than before.`;
+      if (res.chapter > this.chapterIdx) this.jumpToChapter(res.chapter);
+    } else {
+      line = this.story.pick(res.reason) || 'Back to the page.';
+    }
+    const p = this.player;
+    p.dead = false;
+    this.doRespawn();
+    p.invuln = 1.5;
+    this.hearts = MAX_HEARTS;
+    this.ui.hearts(this.hearts);
+    this.state = 'playing'; this.stateT = 0; this.fade = 0;
+    this.flash = 1;
+    this.input.reset();
+    this.story.leaveMind(this.chapterIdx, line);
+    this.restoreMusic();
+  }
+
+  // Start a fresh stretch of road just before chapter k's gate, keeping the run's totals.
+  jumpToChapter(k) {
+    this.distanceBank += this.distance;
+    this.startChapter = k;
+    this.level = new Level((Math.random() * 1e9) | 0, k);
+    const s = this.level.startCol;
+    this.player = new Player((s + 3) * T + T / 2, 10 * T);
+    this.coins = []; this.enemies = []; this.platforms = []; this.items = []; this.flags = [];
+    this.balls = []; this.voids = []; this.cracks = []; this.signs = []; this.billboards = []; this.glimpses = [];
+    this.particles = []; this.texts = [];
+    this.startMeter = s; this.meter = s; this.distance = 0;
+    this.chapterIdx = k - 1;
+    this.checkpoint = { x: this.player.cx, y: 10 * T };
+    this.cam = { x: s * T, y: LEVEL_BOTTOM + 64 - this.VH };
+    this.rule = null;
+    this.arrest = { thin: false, hud: false, silence: false, ending: false };
+    this.ui.arrestHud(false);
+    this.sync();
+    this.cam.y = this.targetCamY();
+  }
+
+  restoreMusic() {
+    const ch = this.chapter;
+    this.sound.setArrangement(ch.key === 'flight' && this.player.ring === 'invisible' ? 'hush' : ch.music);
+    this.sound.setLayers({});
+    this.layersKey = null;
   }
 
   targetCamY() {
@@ -748,6 +829,10 @@ export class Game {
   render(ctx, dpr, scale) {
     const { VW, VH, cam } = this;
     ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+    if (this.state === 'mind' || (this.state === 'paused' && this.prevState === 'mind')) {
+      this.mind.render(ctx, VW, VH);
+      return;
+    }
     const theme = this.currentTheme();
     this.frozen = theme.frozen > 0.5;
     R.drawBackground(ctx, cam, VW, VH, theme, this.bgTime);
@@ -785,6 +870,13 @@ export class Game {
     R.drawComic(ctx, VW, VH, theme.comic);
     if (this.fade > 0) {
       ctx.fillStyle = `rgba(8,6,16,${this.fade})`;
+      ctx.fillRect(0, 0, VW, VH);
+    }
+    if (this.state === 'dying' || (this.state === 'paused' && this.prevState === 'dying')) {
+      drawWordRain(ctx, VW, VH, clamp((this.stateT - 0.5) / 1.0, 0, 1), this.time);
+    }
+    if (this.flash > 0) {
+      ctx.fillStyle = `rgba(250,245,232,${this.flash})`;
       ctx.fillRect(0, 0, VW, VH);
     }
   }

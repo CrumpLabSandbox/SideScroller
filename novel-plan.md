@@ -38,6 +38,25 @@ cross-fade over one chunk so changes feel like a drift, not a level switch.
 | 7 | **The Arrest** | 1350–1550 m | *The Arrest* | Technology stops. The music thins to one voice, then silence. The HUD unbolts and falls off the screen. The double jump stops working. The sky stops cycling. Single jumps, quiet running, narration only; the level design softens to match. |
 | E | **Influence** | 1550 m + | *The Ecstasy of Influence* | Collage: chunks, tiles and enemies from every chapter pasted together. The narrator admits everything here was borrowed. An acknowledgments card lists the books. Then an endless **afterword** continues with everything shuffled and the double jump restored. |
 
+## The Mind (nobody dies)
+There is no game over. When you run out of hearts, the page dissolves into words and you fall into
+**the Mind**: the writer's head, drawn entirely in text. Sentences are the platforms, the background
+is drifting vocabulary, and you are no longer the red runner but **a figment of an idea**, a glowing
+label that grows from "a figment" to "a notion", "an idea", "a premise" and finally "a story".
+
+- **Words are weight.** Collected words orbit the figment. Each one makes it heavier: it jumps a little
+  lower and drifts down a little faster (hold jump to drift).
+- **Two books.** Half the words come from the chapter you fell out of (amber), half from the next one
+  (blue). The HUD shows both counts.
+- **Literary gravity.** At 10 words the figment becomes a story, the sentences let go of their letters,
+  and it falls into an open book: whichever book you carried more words from. Fall into the next
+  book and you start the next chapter; fall into your own and you return to your last checkpoint.
+- **Ways to leave early.** Touch a redaction bar and you are erased; drift off the bottom and you are
+  forgotten. Either way you go back to your last checkpoint with full hearts.
+- **Clichés** float over some sentences; touching one knocks a word loose.
+
+Code: `js/mind.js` (generation, figment physics, rendering), Mind lines and vocabulary in `js/story.js`.
+
 ## Systems to build
 1. **Story engine** (`js/story.js`): chapter table keyed by distance; event triggers (first stomp,
    first fall, last heart, coin streak, checkpoint, entering a region); line pools that don't repeat
@@ -86,5 +105,6 @@ targeted tests for each mechanic, and a full start-to-epilogue run.
 - `js/level.js` — chunk generator; new chunks: `gate`, `ball`, `sign`, `lack`, `collapse`, `billboard`, `vase`.
 - `js/game.js` — chapter beats (`chapterBeats`, `enterChapter`), ring, void, cracks, dream rules.
 - `js/render.js` — themes, skylines, tile skins, overlays (rain, fog, comic panel, dream tint).
-- `js/audio.js` — one arrangement per chapter plus layers the Arrest strips away.
+- `js/audio.js` — one arrangement per chapter plus layers the Arrest strips away, and the Mind's music.
+- `js/mind.js` — the Mind: the level you fall into instead of dying.
 - Debug: append `?chapter=N` (0–8) to the URL to start at a chapter.
