@@ -68,6 +68,9 @@ sw.js                  network-first service worker for offline play
 - [x] GitHub Actions → Pages workflow
 - [x] Smoke test in headless Chromium (no console errors, game starts, player moves)
 
+## Next: the novel
+See [novel-plan.md](novel-plan.md): the game slowly turns into a Jonathan Lethem novel as you run.
+
 ## Ideas for later
 - Dash / wall-jump, more enemy types, boss gates every N checkpoints
 - Daily seed mode with shareable link (`?seed=`)
