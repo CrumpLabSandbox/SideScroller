@@ -59,6 +59,16 @@ const ARR = {
     ],
     leadWave: 'triangle', leadVol: 0.22, leadLen: 1.6, hat: 'odd',
   },
+  road: {
+    bpm: 128, bass: [41, 41, 45, 45, 43, 43, 38, 40], bassMode: 'pattern', bassPat: [1, 0, 1, 1, 1, 0, 1, 1],
+    lead: [
+      77, 0, 76, 0, 72, 0, 69, 0, 72, 0, 0, 76, 0, 0, 77, 0,
+      81, 0, 79, 0, 76, 0, 72, 0, 74, 0, 0, 0, 76, 0, 0, 0,
+      79, 0, 77, 0, 74, 0, 71, 0, 74, 0, 0, 79, 0, 0, 77, 0,
+      74, 0, 72, 0, 69, 0, 72, 0, 76, 0, 0, 0, 0, 0, 0, 0,
+    ],
+    leadWave: 'square', leadVol: 0.1, hat: 'odd', clap: true,
+  },
   mind: {
     bpm: 72, bass: [38, 41, 45, 43, 38, 41, 36, 40], bassMode: 'long',
     arp: [0, 7, 12, 16, 19, 16, 12, 7], leadWave: 'sine', leadVol: 0.1, hat: 'type',
@@ -165,6 +175,7 @@ export class Sound {
       case 'crumble': this.noise(0.5, 0.35, 0, { type: 'lowpass', freq: 400 }); this.tone({ f0: 90, f1: 40, type: 'sawtooth', dur: 0.4, vol: 0.18 }); break;
       case 'rumble': this.noise(0.35, 0.18, 0, { type: 'lowpass', freq: 220 }); break;
       case 'vase': [1047, 1319, 1568, 2093].forEach((f, i) => this.tone({ f0: f, type: 'sine', dur: 0.9, vol: 0.12, delay: i * 0.12, attack: 0.03 })); break;
+      case 'select': this.tone({ f0: 880, dur: 0.06, vol: 0.15 }); this.tone({ f0: 1320, dur: 0.08, vol: 0.12, delay: 0.05 }); break;
       case 'word': this.noise(0.03, 0.4, 0, { type: 'bandpass', freq: 2400 }); this.tone({ f0: 1300, f1: 900, dur: 0.05, vol: 0.06 }); break;
       case 'ding': [1568, 2093].forEach((f, i) => this.tone({ f0: f, type: 'sine', dur: 1.4, vol: 0.2 - i * 0.08, delay: i * 0.02, attack: 0.005 })); break;
       case 'erase': this.noise(0.45, 0.3, 0, { type: 'highpass', freq: 1800 }); this.tone({ f0: 700, f1: 120, type: 'triangle', dur: 0.45, vol: 0.18 }); break;

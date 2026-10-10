@@ -5,6 +5,8 @@ It opens as a cheerful platformer; over about 1.6 km it drifts through eight cha
 to Jonathan Lethem's books, reaches an ending, and continues as an endless afterword.
 Nobody dies: run out of hearts and you fall into the writer's mind, a level drawn entirely in words,
 where you play as a figment of an idea gathering words until it is heavy enough to fall into a book.
+Partway through Dreamed Country the genre bends: the platformer becomes a pseudo-3D roguelite road
+trip with level-ups, dreamed towns, and a world that gets stranger every county.
 No dependencies, no build step.
 
 **Play:** https://crumplabsandbox.github.io/SideScroller/
@@ -14,7 +16,7 @@ No dependencies, no build step.
 - **Keyboard:** ← → or A D to move, Space / ↑ / W to jump, P or Esc to pause, M to mute.
 
 Your furthest chapter is saved, so you can continue from it. Narration and caption size can be changed
-from the pause menu. Add `?chapter=N` (0–8) to the URL to jump straight to a chapter.
+from the pause menu. Add `?chapter=N` (0–8) to the URL to jump straight to a chapter, or `?road` to start on the road.
 
 ## Run locally
 ```sh

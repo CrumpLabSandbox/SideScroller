@@ -5,6 +5,7 @@ import { CHAPTERS, LAST_CHAPTER } from './chapters.js';
 import { SIGN_TEXT, HEADLINES, readPref, writePref } from './story.js';
 import * as R from './render.js';
 import { Mind, drawWordRain } from './mind.js';
+import { Road } from './road.js';
 
 const GRAVITY = 2300;
 const MAX_FALL = 1150;
@@ -65,7 +66,7 @@ export class Game {
     const s = this.level.startCol;
     this.player = new Player((s + 3) * T + T / 2, 10 * T);
     this.coins = []; this.enemies = []; this.platforms = []; this.items = []; this.flags = [];
-    this.balls = []; this.voids = []; this.cracks = []; this.signs = []; this.billboards = []; this.glimpses = [];
+    this.balls = []; this.voids = []; this.cracks = []; this.signs = []; this.billboards = []; this.glimpses = []; this.onramps = [];
     this.particles = []; this.texts = [];
     this.hearts = MAX_HEARTS; this.coinCount = 0; this.kills = 0; this.bonus = 0; this.karmaDock = 0; this.pendingDock = false;
     this.startMeter = s; this.meter = s; this.distance = 0; this.score = 0;
@@ -78,6 +79,7 @@ export class Game {
     this.rule = null;
     this.arrest = { thin: false, hud: false, silence: false, ending: false };
     this.mind = null; this.mindVisits = 0; this.distanceBank = 0; this.flash = 0; this.layersKey = null;
+    this.road = null; this.roadVisits = 0;
     this.sync();
     this.ui.hearts(this.hearts);
     this.ui.coins(0);
@@ -97,7 +99,7 @@ export class Game {
     this.sound.play('start');
     this.sound.startMusic();
   }
-  pause() { if (['playing', 'respawn', 'mind', 'dying'].includes(this.state)) { this.prevState = this.state; this.state = 'paused'; this.ui.show('pause'); } }
+  pause() { if (['playing', 'respawn', 'mind', 'dying', 'road'].includes(this.state)) { this.prevState = this.state; this.state = 'paused'; this.ui.show('pause'); } }
   resume() { if (this.state === 'paused') { this.state = this.prevState || 'playing'; this.input.reset(); this.ui.show(null); } }
   togglePause() { this.state === 'paused' ? this.resume() : this.pause(); }
 
@@ -123,6 +125,7 @@ export class Game {
         case 'crack': this.cracks.push({ c0: s.c0, c1: s.c1, row: s.row, mode: s.mode, state: 'idle', t: 0, x: s.c0 * T, w: (s.c1 - s.c0 + 1) * T }); break;
         case 'sign': this.signs.push({ x: s.x, y: s.y, rule: s.rule, w: 4 * T }); break;
         case 'billboard': this.billboards.push({ x: s.x, y: s.y, idx: s.idx, w: 5 * T }); break;
+        case 'onramp': this.onramps.push({ x: s.x, y: s.y, w: 5 * T, used: false }); break;
       }
     }
     lv.spawns.length = 0;
@@ -138,6 +141,7 @@ export class Game {
     this.cracks = this.cracks.filter(keep);
     this.signs = this.signs.filter(keep);
     this.billboards = this.billboards.filter(keep);
+    this.onramps = this.onramps.filter(keep);
   }
 
   // ---- collision ----------------------------------------------------------
@@ -201,6 +205,12 @@ export class Game {
       this.mind.step(dt, this.VW, this.VH);
       this.story.update(dt);
       if (this.mind.result) this.exitMind(this.mind.result);
+      return;
+    }
+    if (this.state === 'road') {
+      this.road.step(dt, this.VW, this.VH);
+      this.story.update(dt);
+      if (this.road.result) this.exitRoad(this.road.result);
       return;
     }
     this.updateParticles(dt);
@@ -560,6 +570,10 @@ export class Game {
     }
     if (this.items.some((i) => i.taken)) this.items = this.items.filter((i) => !i.taken);
 
+    for (const o of this.onramps) {
+      if (!o.used && p.cx >= o.x + T) { o.used = true; this.enterRoad(); return; }
+    }
+
     for (const f of this.flags) {
       if (f.active || p.cx < f.x) continue;
       f.active = true;
@@ -704,7 +718,7 @@ export class Game {
     this.mind = new Mind({ from, next, input: this.input, sound: this.sound, story: this.story });
     this.state = 'mind'; this.stateT = 0;
     this.input.reset();
-    this.ui.mindMode(true);
+    this.ui.altMode(true);
     this.sound.setArrangement('mind');
     this.sound.setLayers({});
     this.layersKey = null;
@@ -717,7 +731,7 @@ export class Game {
   exitMind(res) {
     const m = this.mind;
     this.mind = null;
-    this.ui.mindMode(false);
+    this.ui.altMode(false);
     let line;
     if (res.type === 'book') {
       const ch = CHAPTERS[res.chapter];
@@ -740,6 +754,50 @@ export class Game {
     this.restoreMusic();
   }
 
+  // Dreamed Country bends into a different genre: a roguelite road trip.
+  enterRoad() {
+    const memory = +readPref('hd_road_memory', '0') || 0;
+    this.road = new Road({ input: this.input, sound: this.sound, story: this.story, ui: this.ui, memory });
+    this.state = 'road'; this.stateT = 0;
+    this.input.reset();
+    this.ui.altMode(true);
+    this.sound.setArrangement('road');
+    this.sound.setLayers({});
+    this.layersKey = null;
+    this.story.enterRoad(memory === 0 && this.roadVisits === 0);
+    this.roadVisits++;
+  }
+
+  // Waking up returns you to the on-ramp; reaching the edge of the dream starts the next chapter.
+  exitRoad(res) {
+    this.road = null;
+    this.ui.altMode(false);
+    this.ui.roadChoice(null);
+    let line;
+    if (res.type === 'end') {
+      line = this.story.lines.end;
+      this.bonus += res.karma;
+      const next = CHAPTERS.findIndex((c) => c.key === 'lack');
+      this.jumpToChapter(next);
+    } else {
+      line = this.story.pick('wake') || 'You woke up at the on-ramp.';
+      writePref('hd_road_memory', String((+readPref('hd_road_memory', '0') || 0) + 1));
+      for (const o of this.onramps) o.used = false;
+    }
+    const p = this.player;
+    p.dead = false;
+    this.doRespawn();
+    p.invuln = 1.5;
+    if (res.type === 'end') this.texts.push({ x: p.cx, y: p.y - 30, text: `+${res.karma} KARMA`, life: 2, vy: -30, color: '#ffe68a' });
+    this.hearts = MAX_HEARTS;
+    this.ui.hearts(this.hearts);
+    this.state = 'playing'; this.stateT = 0; this.fade = 0;
+    this.flash = 1;
+    this.input.reset();
+    this.story.leaveMind(this.chapterIdx, line);
+    this.restoreMusic();
+  }
+
   // Start a fresh stretch of road just before chapter k's gate, keeping the run's totals.
   jumpToChapter(k) {
     this.distanceBank += this.distance;
@@ -748,7 +806,7 @@ export class Game {
     const s = this.level.startCol;
     this.player = new Player((s + 3) * T + T / 2, 10 * T);
     this.coins = []; this.enemies = []; this.platforms = []; this.items = []; this.flags = [];
-    this.balls = []; this.voids = []; this.cracks = []; this.signs = []; this.billboards = []; this.glimpses = [];
+    this.balls = []; this.voids = []; this.cracks = []; this.signs = []; this.billboards = []; this.glimpses = []; this.onramps = [];
     this.particles = []; this.texts = [];
     this.startMeter = s; this.meter = s; this.distance = 0;
     this.chapterIdx = k - 1;
@@ -833,6 +891,10 @@ export class Game {
       this.mind.render(ctx, VW, VH);
       return;
     }
+    if (this.state === 'road' || (this.state === 'paused' && this.prevState === 'road')) {
+      this.road.render(ctx, VW, VH);
+      return;
+    }
     const theme = this.currentTheme();
     this.frozen = theme.frozen > 0.5;
     R.drawBackground(ctx, cam, VW, VH, theme, this.bgTime);
@@ -846,6 +908,7 @@ export class Game {
     for (const b of this.billboards) R.drawBillboard(ctx, b, HEADLINES[b.idx % HEADLINES.length]);
     R.drawTiles(ctx, this.level, cam, VW, VH, this.time);
     for (const g of this.glimpses) R.drawGlimpse(ctx, g);
+    for (const o of this.onramps) R.drawOnramp(ctx, o, this.time);
     for (const f of this.flags) R.drawFlag(ctx, f, this.time);
     for (const p of this.platforms) R.drawPlatform(ctx, p);
     for (const c of this.coins) R.drawCoin(ctx, c, this.time);

@@ -10,6 +10,7 @@ export class Input {
     this.right = false;
     this.jumpHeld = false;
     this.jumpQueued = false;
+    this.navQueued = 0;   // a left/right press, remembered until a menu reads it
     this.zones = { left: false, right: false, jump: false }; // touch-only, for drawing hints
     this.keys = new Set();
     this.pointers = new Map();
@@ -25,6 +26,8 @@ export class Input {
         e.preventDefault();
         this.keys.add(e.code);
         if (JUMP_KEYS.has(e.code)) this.jumpQueued = true;
+        if (LEFT_KEYS.has(e.code)) this.navQueued = -1;
+        if (RIGHT_KEYS.has(e.code)) this.navQueued = 1;
         this.recompute();
         this.onAny && this.onAny();
       }
@@ -67,6 +70,8 @@ export class Input {
   recompute() {
     const z = { left: false, right: false, jump: false };
     for (const p of this.pointers.values()) z[Input.zoneOf(p.x)] = true;
+    if (z.left && !this.zones.left) this.navQueued = -1;
+    if (z.right && !this.zones.right) this.navQueued = 1;
     this.zones = z;
     let l = z.left, r = z.right, j = z.jump;
     for (const k of this.keys) {
@@ -80,6 +85,12 @@ export class Input {
 
   get dir() { return (this.right ? 1 : 0) - (this.left ? 1 : 0); }
 
+  consumeNav() {
+    const n = this.navQueued;
+    this.navQueued = 0;
+    return n;
+  }
+
   consumeJump() {
     const q = this.jumpQueued;
     this.jumpQueued = false;
@@ -92,5 +103,6 @@ export class Input {
     this.jumpHeld = false;
     this.recompute();
     this.jumpQueued = false;
+    this.navQueued = 0;
   }
 }

@@ -938,6 +938,39 @@ export function drawBillboard(ctx, b, text) {
   lines.forEach((l, i) => ctx.fillText(l, x + 8, by + 22 + i * 18));
 }
 
+// Dreamed Country's on-ramp: a parked station wagon and a sign for the road out of the dream.
+export function drawOnramp(ctx, o, time) {
+  const x = o.x, gy = o.y;
+  // sign
+  const sx = x + 2.6 * T;
+  ctx.fillStyle = '#7a5235';
+  ctx.fillRect(sx + 10, gy - 118, 6, 118);
+  ctx.fillStyle = '#2f8f5a';
+  roundRect(ctx, sx - 30, gy - 150, 150, 52, 6); ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+  roundRect(ctx, sx - 26, gy - 146, 142, 44, 4); ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('THE ROAD OUT', sx + 45, gy - 132);
+  ctx.fillText('OF THE DREAM  →', sx + 45, gy - 116);
+  // station wagon, side view
+  const bob = Math.sin(time * 2) * 0.6;
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath(); ctx.ellipse(x + 40, gy - 2, 62, 6, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#2f8f8a';
+  roundRect(ctx, x - 18, gy - 40 + bob, 118, 26, 8); ctx.fill();
+  roundRect(ctx, x - 6, gy - 62 + bob, 80, 26, 8); ctx.fill();
+  ctx.fillStyle = 'rgba(170,215,235,0.8)';
+  ctx.fillRect(x + 2, gy - 58 + bob, 30, 17); ctx.fillRect(x + 36, gy - 58 + bob, 32, 17);
+  ctx.fillStyle = '#ffe2a0'; ctx.fillRect(x + 94, gy - 34 + bob, 6, 6);
+  ctx.fillStyle = '#ff4d5e'; ctx.fillRect(x - 18, gy - 34 + bob, 5, 7);
+  ctx.fillStyle = '#1a1820';
+  for (const wx of [x + 8, x + 74]) { ctx.beginPath(); ctx.arc(wx, gy - 12, 11, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = '#9aa1b0';
+  for (const wx of [x + 8, x + 74]) { ctx.beginPath(); ctx.arc(wx, gy - 12, 4.5, 0, Math.PI * 2); ctx.fill(); }
+  // keys left in the ignition, glinting
+  if (Math.sin(time * 4) > 0.6) { ctx.fillStyle = '#ffe14f'; ctx.fillRect(x + 50, gy - 46 + bob, 3, 3); }
+}
+
 export function drawGlimpse(ctx, g) {
   const a = clamp(Math.min(g.t, g.life - g.t) / 0.25, 0, 1);
   ctx.save();

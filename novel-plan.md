@@ -62,6 +62,31 @@ label that grows from "a figment" to "a notion", "an idea", "a premise" and fina
 
 Code: `js/mind.js` (generation, figment physics, rendering), Mind lines and vocabulary in `js/story.js`.
 
+## The Road (genre bend: Dreamed Country becomes a roguelite road trip)
+Partway through Dreamed Country an on-ramp appears: a checkpoint, a parked station wagon, and a sign
+reading THE ROAD OUT OF THE DREAM. Walk into the car and the platformer becomes a pseudo-3D road game.
+"This was supposed to be a platformer. Now it's a road movie."
+
+- **Controls.** ◀ ▶ steer, jump hops the car over things. Collect dream fragments (glowing words).
+- **Leveling.** Fragments are experience. Each level-up pauses the drive and offers three perks:
+  Wider Tires, Shock Absorbers, Sleepwalker, Magnet Radio, Long Hop, Night Eyes, Lucky Hubcap,
+  A Kangaroo in a Good Suit (a hitchhiker who grabs fragments from the next lane), Second Gear,
+  Dream Logic, Roadside Mechanic. The driver gains a scarf, a fedora, a halo, then orbiting words.
+- **Five legs, dreamed towns.** Between legs you stop in a town dreamed by someone (a retired
+  projectionist, a dog, the radio…). The motel fixes a dent and you choose between two roads, each
+  with its county's rule: always night, a road that remembers being a river, Sunday forever, gravity
+  as a rumor, fog of forgetting, a radio that pulls fragments in, too much furniture. The stranger
+  road pays more fragments and raises strangeness faster.
+- **Strangeness.** Five tiers change everything: pink dusk desert, impossible billboards, chessboard
+  fields with chess-piece obstacles, furniture loose on the highway, and finally a road made of a page
+  under seven moons with words in the sky. The car becomes a convertible, a sofa, a bathtub, a typewriter.
+- **Nobody dies.** Three dents and you wake up at the on-ramp. Each wake-up is remembered: the next
+  attempt starts with a gift perk (up to two). Finish all five legs and the dream runs out of road into
+  Chapter Five, The Lack, with a karma bonus.
+- Debug: `?road` starts straight on the road.
+
+Code: `js/road.js` (renderer, track generation, run structure, art), road lines in `js/story.js`.
+
 ## Systems to build
 1. **Story engine** (`js/story.js`): chapter table keyed by distance; event triggers (first stomp,
    first fall, last heart, coin streak, checkpoint, entering a region); line pools that don't repeat
@@ -112,4 +137,5 @@ targeted tests for each mechanic, and a full start-to-epilogue run.
 - `js/render.js` — themes, skylines, tile skins, overlays (rain, fog, comic panel, dream tint).
 - `js/audio.js` — one arrangement per chapter plus layers the Arrest strips away, and the Mind's music.
 - `js/mind.js` — the Mind: the level you fall into instead of dying.
+- `js/road.js` — the Road: Dreamed Country's roguelite road trip.
 - Debug: append `?chapter=N` (0–8) to the URL to start at a chapter.
