@@ -7,6 +7,9 @@ Nobody dies: run out of hearts and you fall into the writer's mind, a level draw
 where you play as a figment of an idea gathering words until it is heavy enough to fall into a book.
 Partway through Dreamed Country the genre bends: a door in a field opens into the Deep Mind, a
 turn-based dungeon crawl of choices, word-fights and level-ups. No reflexes, just decisions.
+In Chapter Two a red door with a heart in the window leads into a whole other game:
+**Crush Commando** by Sam Ling ([samuelling/crush-commando](https://github.com/samuelling/crush-commando)),
+played full screen with a button to come back. Stages and mixtapes won in there return as karma.
 No dependencies, no build step.
 
 **Play:** https://crumplabsandbox.github.io/SideScroller/

@@ -21,6 +21,20 @@ const WALKER_STYLE = { grass: 'blob', street: 'hat', brownstone: 'cap', dream: '
 const BIRD_STYLE = { street: 'pigeon', brownstone: 'pigeon', gray: 'pigeon', plain: 'pigeon' };
 const PLATFORM_STYLE = { dream: 'cloud', street: 'steel', brownstone: 'steel', gray: 'steel' };
 const COMIC_WORDS = ['BOP!', 'POW!', 'THWACK!', 'BONK!', 'ZAP!'];
+// Crush Commando keeps its save in the same origin's localStorage, so progress made in there can be read out here.
+function crushProgress() {
+  try {
+    const s = JSON.parse(localStorage.getItem('emberwick.save.v1')) || {};
+    const lv = Object.values(s.lv || {});
+    return { stages: lv.filter((r) => r && r.done).length, tapes: lv.reduce((n, r) => n + ((r && r.stars) || []).filter(Boolean).length, 0), cleared: !!s.cleared };
+  } catch (_) { return { stages: 0, tapes: 0, cleared: false }; }
+}
+
+const CRUSH_LINES = {
+  crushBack: 'You came back out onto the stoop. The other game kept playing without you.',
+  crushWon: 'You came back out onto the stoop, a little braver. Some of that karma followed you home.',
+};
+
 const LINES_FALLBACK = { end: 'You came up out of the mind into the salt flats.', wake: 'You woke up next to the door.' };
 const NUMERALS = ['P', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'E'];
 
@@ -67,7 +81,7 @@ export class Game {
     const s = this.level.startCol;
     this.player = new Player((s + 3) * T + T / 2, 10 * T);
     this.coins = []; this.enemies = []; this.platforms = []; this.items = []; this.flags = [];
-    this.balls = []; this.voids = []; this.cracks = []; this.signs = []; this.billboards = []; this.glimpses = []; this.doors = [];
+    this.balls = []; this.voids = []; this.cracks = []; this.signs = []; this.billboards = []; this.glimpses = []; this.doors = []; this.portals = [];
     this.particles = []; this.texts = [];
     this.hearts = MAX_HEARTS; this.coinCount = 0; this.kills = 0; this.bonus = 0; this.karmaDock = 0; this.pendingDock = false;
     this.startMeter = s; this.meter = s; this.distance = 0; this.score = 0;
@@ -127,6 +141,7 @@ export class Game {
         case 'sign': this.signs.push({ x: s.x, y: s.y, rule: s.rule, w: 4 * T }); break;
         case 'billboard': this.billboards.push({ x: s.x, y: s.y, idx: s.idx, w: 5 * T }); break;
         case 'mindDoor': this.doors.push({ x: s.x, y: s.y, w: 5 * T, used: false }); break;
+        case 'crushDoor': this.portals.push({ x: s.x, y: s.y, armed: true }); break;
       }
     }
     lv.spawns.length = 0;
@@ -143,6 +158,7 @@ export class Game {
     this.signs = this.signs.filter(keep);
     this.billboards = this.billboards.filter(keep);
     this.doors = this.doors.filter(keep);
+    this.portals = this.portals.filter(keep);
   }
 
   // ---- collision ----------------------------------------------------------
@@ -208,6 +224,12 @@ export class Game {
       if (this.mind.result) this.exitMind(this.mind.result);
       return;
     }
+    if (this.state === 'portalAsk') {
+      if (this.input.consumeJump()) this.enterPortal();
+      else if (this.input.consumeNav()) this.stayOut();
+      return;
+    }
+    if (this.state === 'away') return;
     if (this.state === 'crawl') {
       const nav = this.input.consumeNav();
       if (nav) this.ui.crawlNav(nav);
@@ -577,6 +599,13 @@ export class Game {
       if (!o.used && p.cx >= o.x + T * 0.5) { o.used = true; this.enterCrawl(); return; }
     }
 
+    // the Crush Commando door asks first; walking off re-arms it
+    for (const o of this.portals) {
+      const at = p.cx >= o.x + T * 0.2 && p.cx <= o.x + T * 1.7 && p.bottom >= o.y - 4;
+      if (!at) o.armed = true;
+      else if (o.armed && p.grounded) { o.armed = false; this.askPortal(); return; }
+    }
+
     for (const f of this.flags) {
       if (f.active || p.cx < f.x) continue;
       f.active = true;
@@ -757,6 +786,50 @@ export class Game {
     this.restoreMusic();
   }
 
+  // ---- the Crush Commando door: a whole other game, by Sam Ling, played in a frame ----
+  askPortal() {
+    const p = this.player;
+    p.vx = 0;
+    this.state = 'portalAsk'; this.stateT = 0;
+    this.input.reset();
+    this.ui.portalAsk(true);
+    this.sound.play('select');
+  }
+
+  stayOut() {
+    this.ui.portalAsk(false);
+    this.state = 'playing';
+    this.input.reset();
+  }
+
+  enterPortal() {
+    this.ui.portalAsk(false);
+    this.portalBefore = crushProgress();
+    this.state = 'away'; this.stateT = 0;
+    this.input.reset();
+    this.sound.sleep();
+    this.ui.portalOpen();
+  }
+
+  // Back through the door. Progress made in there pays karma out here.
+  leavePortal() {
+    this.ui.portalClose();
+    const a = this.portalBefore || crushProgress(), b = crushProgress();
+    const karma = Math.max(0, b.stages - a.stages) * 150 + Math.max(0, b.tapes - a.tapes) * 50 + (b.cleared && !a.cleared ? 1000 : 0);
+    const p = this.player;
+    this.state = 'playing'; this.stateT = 0;
+    this.input.reset();
+    this.sound.unlock();
+    this.restoreMusic();
+    if (karma) {
+      this.bonus += karma;
+      this.texts.push({ x: p.cx, y: p.y - 30, text: `+${karma} KARMA`, life: 2, vy: -30, color: '#ffe68a' });
+      this.sound.play('heart');
+    }
+    const key = karma ? 'crushWon' : 'crushBack';
+    this.story.say(this.story.pick(key) || CRUSH_LINES[key]);
+  }
+
   // Dreamed Country bends into a different genre: a turn-based dungeon crawl through the mind.
   enterCrawl() {
     const memory = +readPref('hd_crawl_memory', '0') || 0;
@@ -808,7 +881,7 @@ export class Game {
     const s = this.level.startCol;
     this.player = new Player((s + 3) * T + T / 2, 10 * T);
     this.coins = []; this.enemies = []; this.platforms = []; this.items = []; this.flags = [];
-    this.balls = []; this.voids = []; this.cracks = []; this.signs = []; this.billboards = []; this.glimpses = []; this.doors = [];
+    this.balls = []; this.voids = []; this.cracks = []; this.signs = []; this.billboards = []; this.glimpses = []; this.doors = []; this.portals = [];
     this.particles = []; this.texts = [];
     this.startMeter = s; this.meter = s; this.distance = 0;
     this.chapterIdx = k - 1;
@@ -911,6 +984,7 @@ export class Game {
     R.drawTiles(ctx, this.level, cam, VW, VH, this.time);
     for (const g of this.glimpses) R.drawGlimpse(ctx, g);
     for (const o of this.doors) R.drawMindDoor(ctx, o, this.time);
+    for (const o of this.portals) R.drawCrushDoor(ctx, o, this.time, !o.armed && this.state !== 'playing');
     for (const f of this.flags) R.drawFlag(ctx, f, this.time);
     for (const p of this.platforms) R.drawPlatform(ctx, p);
     for (const c of this.coins) R.drawCoin(ctx, c, this.time);

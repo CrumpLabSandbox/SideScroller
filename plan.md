@@ -27,6 +27,7 @@ js/story.js            narration lines, Mind vocabulary, and caption engine
 js/mind.js             the Mind: the all-text level you fall into instead of dying
 js/crawl.js            the Deep Mind: turn-based dungeon crawl logic (floors, foes, boons, events)
 js/crawlview.js        the Deep Mind's tap-to-choose view (map, foe, log, choice buttons)
+crush/index.html       guest game: Crush Commando by Sam Ling, unmodified (see crush/README.md)
 js/render.js           per-chapter themes, parallax layers, tile skins, sprites, particles, overlays
 js/input.js            keyboard + multi-touch zones (left / right / jump) with edge detection
 js/audio.js            WebAudio synth SFX + per-chapter music arrangements, mute persisted

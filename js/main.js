@@ -80,6 +80,27 @@ const ui = {
     document.body.classList.remove('in-crawl');
     this.crawlView = null;
   },
+  // Crush Commando, by Sam Ling, lives in crush/ and opens in a full-screen frame.
+  portalAsk(on) {
+    $('portal-ask').classList.toggle('hidden', !on);
+    if (on) $('btn-portal-go').focus({ preventScroll: true });
+  },
+  portalOpen() {
+    const el = $('portal');
+    const f = document.createElement('iframe');
+    f.src = 'crush/index.html';
+    f.title = 'Crush Commando by Sam Ling';
+    f.allow = 'autoplay; fullscreen; gamepad';
+    el.appendChild(f);
+    el.classList.remove('hidden');
+    f.addEventListener('load', () => f.focus(), { once: true });
+  },
+  portalClose() {
+    const el = $('portal');
+    el.querySelectorAll('iframe').forEach((f) => f.remove());   // unloading it stops its music too
+    el.classList.add('hidden');
+    $('game').focus && $('game').focus({ preventScroll: true });
+  },
   crawlNav(d) { if (this.crawlView) this.crawlView.nav(d); },
   crawlActivate() { if (this.crawlView) this.crawlView.activate(); },
 };
@@ -151,6 +172,9 @@ $('btn-quit').addEventListener('click', () => {
   $('chapter-card').classList.remove('show');
   showTitle();
 });
+$('btn-portal-go').addEventListener('click', () => game.enterPortal());
+$('btn-portal-stay').addEventListener('click', () => { sound.unlock(); game.stayOut(); });
+$('btn-portal-back').addEventListener('click', () => game.leavePortal());
 $('btn-pause').addEventListener('click', () => { sound.unlock(); game.togglePause(); });
 $('btn-sound').addEventListener('click', toggleMute);
 $('btn-sound-pause').addEventListener('click', toggleMute);
@@ -161,7 +185,10 @@ $('btn-textsize').addEventListener('click', () => {
   writePref('hd_textsize', large ? 'large' : 'normal');
   updateSettingsBtns();
 });
-input.onPause = () => { if (['playing', 'respawn', 'mind', 'dying', 'crawl', 'paused'].includes(game.state)) game.togglePause(); };
+input.onPause = () => {
+  if (game.state === 'portalAsk') { game.stayOut(); return; }
+  if (['playing', 'respawn', 'mind', 'dying', 'crawl', 'paused'].includes(game.state)) game.togglePause();
+};
 input.onMute = toggleMute;
 input.onAny = () => sound.unlock();
 

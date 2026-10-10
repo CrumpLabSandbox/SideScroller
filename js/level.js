@@ -111,6 +111,7 @@ export class Level {
     else if (this.sinceCheckpoint >= 8) type = 'checkpoint';
     else if (this.chunkCount <= 2) type = this.chunkCount === 1 ? 'gap' : 'flat';
     else if (ch.key === 'dream' && !this.doorPlaced && this.chunksInChapter >= 7) type = 'mindDoor';
+    else if (ch.key === 'stoop' && !this.crushPlaced && this.chunksInChapter >= 5) type = 'crushDoor';
     else if (ch.key === 'gray' && !this.vaseChapters.has(ci) && this.chunksInChapter >= 4 && r() < 0.4) type = 'vase';
     else type = this._pick(ch.pool);
     this.lastType = type;
@@ -357,6 +358,20 @@ export class Level {
     if (last) last.c1 = Math.min(last.c1, c - 1);
     this.sinceCheckpoint = 0;
     this.doorPlaced = true;
+    this.genCol = c + len;
+  }
+
+  // Stoop Ball: a door to someone else's game. Flat ground and a checkpoint so it's easy to walk up to.
+  _crushDoor() {
+    const c = this.genCol;
+    const len = 12;
+    this.fillGround(c, c + len - 1, this.groundRow);
+    this.spawn({ type: 'checkpoint', x: (c + 2) * T + T / 2, y: this.groundRow * T });
+    this.spawn({ type: 'crushDoor', x: (c + 6) * T, y: this.groundRow * T });
+    const last = this.regions[this.regions.length - 1];
+    if (last) last.c1 = Math.min(last.c1, c - 1);
+    this.sinceCheckpoint = 0;
+    this.crushPlaced = true;
     this.genCol = c + len;
   }
 

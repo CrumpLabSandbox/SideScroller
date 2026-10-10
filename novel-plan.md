@@ -93,6 +93,17 @@ becomes a turn-based dungeon crawl. Nothing needs reflexes: every turn is a deci
 Code: `js/crawl.js` (pure logic: floors, foes, boons, events, balance), `js/crawlview.js` (DOM view),
 crawl lines in `js/story.js`, the door in `js/level.js` and `js/render.js`.
 
+## The Crush Commando door (a guest game)
+Partway through Chapter Two (Stoop Ball) there is a checkpoint, a red door with a heart in its window,
+and a neon sidewalk sign: CRUSH COMMANDO, a game by Sam Ling. Stop at the door and it asks first:
+**Go in** or **Keep running** (◀ ▶ or Esc keeps running, jump goes in). Inside, Sam's run-and-gun
+plays full screen in a frame, with its own touch controls and saves; a **◀ Hollow Dash** button
+brings you back to the same spot. Hollow Dash reads Crush Commando's save on the way out and pays
+karma: 150 per new stage cleared, 50 per new mixtape, 1000 for finishing it.
+
+Code: `crush/` (the guest game, unmodified), `_crushDoor` in `js/level.js`, `drawCrushDoor` in
+`js/render.js`, `askPortal`/`enterPortal`/`leavePortal` in `js/game.js`, the frame in `js/main.js`.
+
 ## Systems to build
 1. **Story engine** (`js/story.js`): chapter table keyed by distance; event triggers (first stomp,
    first fall, last heart, coin streak, checkpoint, entering a region); line pools that don't repeat

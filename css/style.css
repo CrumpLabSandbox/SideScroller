@@ -90,6 +90,38 @@ body.large-text { --cap-size: 20px; }
 }
 .icon-btn:active { transform: scale(.94); }
 
+/* ---- The Crush Commando door: ask first, then the guest game fills the screen ---- */
+#portal-ask {
+  position: fixed; inset: 0; z-index: 12; display: flex; align-items: center; justify-content: center;
+  padding: calc(12px + var(--sat)) calc(16px + var(--sar)) calc(12px + var(--sab)) calc(16px + var(--sal));
+  background: rgba(10, 6, 12, .55);
+}
+.pa-card {
+  max-width: 460px; width: 100%; padding: 18px 20px 16px; border-radius: 16px; text-align: center;
+  background: #1a0f16; border: 2px solid rgba(255, 95, 135, .75); box-shadow: 0 0 28px rgba(255, 79, 123, .35);
+  color: #ffe9dc;
+}
+.pa-title { font: 900 24px system-ui, sans-serif; letter-spacing: .04em; color: #ffd2a1; text-shadow: 0 0 12px rgba(255, 79, 123, .8); }
+.pa-text { font: 16px/1.4 Georgia, serif; margin: 10px 0 6px; }
+.pa-by { font: italic 13px/1.4 Georgia, serif; opacity: .75; margin: 0 0 14px; }
+.pa-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.pa-actions .btn { min-width: 150px; }
+@media (max-height: 420px) {
+  .pa-card { padding: 12px 16px; }
+  .pa-title { font-size: 20px; }
+  .pa-text { font-size: 14px; margin: 6px 0 4px; }
+  .pa-by { margin-bottom: 10px; }
+}
+#portal { position: fixed; inset: 0; z-index: 20; background: #0a080b; }
+#portal iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+.portal-back {
+  position: absolute; z-index: 1; left: 50%; transform: translateX(-50%);
+  top: calc(6px + var(--sat));
+  font: 700 13px system-ui, sans-serif; color: #ffe9cf; padding: 7px 12px; border-radius: 10px;
+  background: rgba(20, 14, 12, .72); border: 1px solid rgba(255, 175, 100, .5); cursor: pointer;
+}
+.portal-back:active { transform: translateX(-50%) scale(.95); }
+
 /* ---- The Deep Mind: a dungeon crawl drawn in words ---- */
 body.in-crawl #hud { z-index: 9; }
 #crawl {

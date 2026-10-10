@@ -1118,3 +1118,49 @@ export function drawTouchHints(ctx, zones, W, H, active) {
   draw(W * 0.425, '▶', zones.right);
   draw(W * 0.8, '▲', zones.jump);
 }
+
+// Chapter Two's guest door: a red arcade door with a heart in the window and a neon sign over it.
+export function drawCrushDoor(ctx, o, time, lit) {
+  const x = o.x, gy = o.y, w = 44, h = 88;
+  const pulse = 0.6 + 0.4 * Math.sin(time * 4);
+  // a neon sidewalk sign beside the door
+  const sx = x + w + 82;
+  ctx.fillStyle = '#3b2a26';
+  ctx.fillRect(sx - 30, gy - 34, 4, 34); ctx.fillRect(sx + 26, gy - 34, 4, 34);
+  ctx.save();
+  ctx.shadowColor = '#ff4f7b'; ctx.shadowBlur = 12 + pulse * 8;
+  ctx.fillStyle = '#1a0f16';
+  roundRect(ctx, sx - 74, gy - 78, 148, 44, 8); ctx.fill();
+  ctx.strokeStyle = `rgba(255,95,135,${0.7 + pulse * 0.3})`; ctx.lineWidth = 2.5;
+  roundRect(ctx, sx - 74, gy - 78, 148, 44, 8); ctx.stroke();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ffd2a1'; ctx.font = '900 15px system-ui, sans-serif';
+  ctx.fillText('CRUSH COMMANDO', sx, gy - 62);
+  ctx.restore();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(255,220,200,0.8)'; ctx.font = 'italic 10px Georgia, serif';
+  ctx.fillText('a game by Sam Ling', sx, gy - 45);
+  // warm light under the door
+  const g = ctx.createRadialGradient(x + w / 2, gy, 4, x + w / 2, gy, 70);
+  g.addColorStop(0, `rgba(255,140,90,${0.35 + (lit ? 0.3 : 0)})`);
+  g.addColorStop(1, 'rgba(255,140,90,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(x - 50, gy - 70, w + 100, 80);
+  // frame and door
+  ctx.fillStyle = '#4a2c25';
+  ctx.fillRect(x - 6, gy - h - 6, w + 12, h + 6);
+  ctx.fillStyle = lit ? '#e2405f' : '#c23350';
+  ctx.fillRect(x, gy - h, w, h);
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(x + 5, gy - h * 0.45, w - 10, h * 0.38);
+  // heart window
+  const hx = x + w / 2, hy = gy - h * 0.7, r = 7 + (lit ? pulse * 1.5 : 0);
+  ctx.fillStyle = `rgba(255,${200 + pulse * 40 | 0},150,${0.75 + pulse * 0.25})`;
+  ctx.beginPath();
+  ctx.moveTo(hx, hy + r * 1.3);
+  ctx.bezierCurveTo(hx - r * 2, hy, hx - r, hy - r * 1.3, hx, hy - r * 0.4);
+  ctx.bezierCurveTo(hx + r, hy - r * 1.3, hx + r * 2, hy, hx, hy + r * 1.3);
+  ctx.fill();
+  ctx.fillStyle = '#ffd166';
+  ctx.beginPath(); ctx.arc(x + w - 8, gy - h / 2, 2.5, 0, Math.PI * 2); ctx.fill();
+}
