@@ -4,8 +4,8 @@ import { T, ROWS, SPIKE, LEVEL_BOTTOM, Level } from './level.js';
 import { CHAPTERS, LAST_CHAPTER } from './chapters.js';
 import { SIGN_TEXT, HEADLINES, readPref, writePref } from './story.js';
 import * as R from './render.js';
-import { Mind, drawWordRain } from './mind.js';
-import { Road } from './road.js';
+import { Mind, drawWordRain, renderBackdrop } from './mind.js';
+import { Crawl } from './crawl.js';
 
 const GRAVITY = 2300;
 const MAX_FALL = 1150;
@@ -21,6 +21,7 @@ const WALKER_STYLE = { grass: 'blob', street: 'hat', brownstone: 'cap', dream: '
 const BIRD_STYLE = { street: 'pigeon', brownstone: 'pigeon', gray: 'pigeon', plain: 'pigeon' };
 const PLATFORM_STYLE = { dream: 'cloud', street: 'steel', brownstone: 'steel', gray: 'steel' };
 const COMIC_WORDS = ['BOP!', 'POW!', 'THWACK!', 'BONK!', 'ZAP!'];
+const LINES_FALLBACK = { end: 'You came up out of the mind into the salt flats.', wake: 'You woke up next to the door.' };
 const NUMERALS = ['P', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'E'];
 
 const overlaps = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
@@ -66,7 +67,7 @@ export class Game {
     const s = this.level.startCol;
     this.player = new Player((s + 3) * T + T / 2, 10 * T);
     this.coins = []; this.enemies = []; this.platforms = []; this.items = []; this.flags = [];
-    this.balls = []; this.voids = []; this.cracks = []; this.signs = []; this.billboards = []; this.glimpses = []; this.onramps = [];
+    this.balls = []; this.voids = []; this.cracks = []; this.signs = []; this.billboards = []; this.glimpses = []; this.doors = [];
     this.particles = []; this.texts = [];
     this.hearts = MAX_HEARTS; this.coinCount = 0; this.kills = 0; this.bonus = 0; this.karmaDock = 0; this.pendingDock = false;
     this.startMeter = s; this.meter = s; this.distance = 0; this.score = 0;
@@ -79,7 +80,7 @@ export class Game {
     this.rule = null;
     this.arrest = { thin: false, hud: false, silence: false, ending: false };
     this.mind = null; this.mindVisits = 0; this.distanceBank = 0; this.flash = 0; this.layersKey = null;
-    this.road = null; this.roadVisits = 0;
+    this.crawl = null; this.crawlMusic = null;
     this.sync();
     this.ui.hearts(this.hearts);
     this.ui.coins(0);
@@ -99,7 +100,7 @@ export class Game {
     this.sound.play('start');
     this.sound.startMusic();
   }
-  pause() { if (['playing', 'respawn', 'mind', 'dying', 'road'].includes(this.state)) { this.prevState = this.state; this.state = 'paused'; this.ui.show('pause'); } }
+  pause() { if (['playing', 'respawn', 'mind', 'dying', 'crawl'].includes(this.state)) { this.prevState = this.state; this.state = 'paused'; this.ui.show('pause'); } }
   resume() { if (this.state === 'paused') { this.state = this.prevState || 'playing'; this.input.reset(); this.ui.show(null); } }
   togglePause() { this.state === 'paused' ? this.resume() : this.pause(); }
 
@@ -125,7 +126,7 @@ export class Game {
         case 'crack': this.cracks.push({ c0: s.c0, c1: s.c1, row: s.row, mode: s.mode, state: 'idle', t: 0, x: s.c0 * T, w: (s.c1 - s.c0 + 1) * T }); break;
         case 'sign': this.signs.push({ x: s.x, y: s.y, rule: s.rule, w: 4 * T }); break;
         case 'billboard': this.billboards.push({ x: s.x, y: s.y, idx: s.idx, w: 5 * T }); break;
-        case 'onramp': this.onramps.push({ x: s.x, y: s.y, w: 5 * T, used: false }); break;
+        case 'mindDoor': this.doors.push({ x: s.x, y: s.y, w: 5 * T, used: false }); break;
       }
     }
     lv.spawns.length = 0;
@@ -141,7 +142,7 @@ export class Game {
     this.cracks = this.cracks.filter(keep);
     this.signs = this.signs.filter(keep);
     this.billboards = this.billboards.filter(keep);
-    this.onramps = this.onramps.filter(keep);
+    this.doors = this.doors.filter(keep);
   }
 
   // ---- collision ----------------------------------------------------------
@@ -207,10 +208,12 @@ export class Game {
       if (this.mind.result) this.exitMind(this.mind.result);
       return;
     }
-    if (this.state === 'road') {
-      this.road.step(dt, this.VW, this.VH);
-      this.story.update(dt);
-      if (this.road.result) this.exitRoad(this.road.result);
+    if (this.state === 'crawl') {
+      const nav = this.input.consumeNav();
+      if (nav) this.ui.crawlNav(nav);
+      if (this.input.consumeJump()) this.ui.crawlActivate();
+      if (this.crawl.music !== this.crawlMusic) { this.crawlMusic = this.crawl.music; this.sound.setArrangement(this.crawlMusic); }
+      if (this.crawl.result) this.exitCrawl(this.crawl.result);
       return;
     }
     this.updateParticles(dt);
@@ -570,8 +573,8 @@ export class Game {
     }
     if (this.items.some((i) => i.taken)) this.items = this.items.filter((i) => !i.taken);
 
-    for (const o of this.onramps) {
-      if (!o.used && p.cx >= o.x + T) { o.used = true; this.enterRoad(); return; }
+    for (const o of this.doors) {
+      if (!o.used && p.cx >= o.x + T * 0.5) { o.used = true; this.enterCrawl(); return; }
     }
 
     for (const f of this.flags) {
@@ -754,35 +757,34 @@ export class Game {
     this.restoreMusic();
   }
 
-  // Dreamed Country bends into a different genre: a roguelite road trip.
-  enterRoad() {
-    const memory = +readPref('hd_road_memory', '0') || 0;
-    this.road = new Road({ input: this.input, sound: this.sound, story: this.story, ui: this.ui, memory });
-    this.state = 'road'; this.stateT = 0;
+  // Dreamed Country bends into a different genre: a turn-based dungeon crawl through the mind.
+  enterCrawl() {
+    const memory = +readPref('hd_crawl_memory', '0') || 0;
+    this.crawl = new Crawl({ memory, sound: this.sound, onKarma: (d) => { this.bonus += d; } });
+    this.state = 'crawl'; this.stateT = 0;
     this.input.reset();
+    this.story.clear();
     this.ui.altMode(true);
-    this.sound.setArrangement('road');
+    this.ui.crawlOpen(this.crawl);
+    this.crawlMusic = null;
     this.sound.setLayers({});
     this.layersKey = null;
-    this.story.enterRoad(memory === 0 && this.roadVisits === 0);
-    this.roadVisits++;
   }
 
-  // Waking up returns you to the on-ramp; reaching the edge of the dream starts the next chapter.
-  exitRoad(res) {
-    this.road = null;
+  // Waking up returns you to the door; defeating the Blank Page lets you out into the next chapter.
+  exitCrawl(res) {
+    this.crawl = null;
+    this.ui.crawlClose();
     this.ui.altMode(false);
-    this.ui.roadChoice(null);
     let line;
     if (res.type === 'end') {
-      line = this.story.lines.end;
+      line = this.story.lines.crawlEnd || LINES_FALLBACK.end;
       this.bonus += res.karma;
-      const next = CHAPTERS.findIndex((c) => c.key === 'lack');
-      this.jumpToChapter(next);
+      this.jumpToChapter(CHAPTERS.findIndex((c) => c.key === 'lack'));
     } else {
-      line = this.story.pick('wake') || 'You woke up at the on-ramp.';
-      writePref('hd_road_memory', String((+readPref('hd_road_memory', '0') || 0) + 1));
-      for (const o of this.onramps) o.used = false;
+      line = this.story.pick('crawlWake') || LINES_FALLBACK.wake;
+      writePref('hd_crawl_memory', String((+readPref('hd_crawl_memory', '0') || 0) + 1));
+      for (const o of this.doors) o.used = false;
     }
     const p = this.player;
     p.dead = false;
@@ -806,7 +808,7 @@ export class Game {
     const s = this.level.startCol;
     this.player = new Player((s + 3) * T + T / 2, 10 * T);
     this.coins = []; this.enemies = []; this.platforms = []; this.items = []; this.flags = [];
-    this.balls = []; this.voids = []; this.cracks = []; this.signs = []; this.billboards = []; this.glimpses = []; this.onramps = [];
+    this.balls = []; this.voids = []; this.cracks = []; this.signs = []; this.billboards = []; this.glimpses = []; this.doors = [];
     this.particles = []; this.texts = [];
     this.startMeter = s; this.meter = s; this.distance = 0;
     this.chapterIdx = k - 1;
@@ -891,8 +893,8 @@ export class Game {
       this.mind.render(ctx, VW, VH);
       return;
     }
-    if (this.state === 'road' || (this.state === 'paused' && this.prevState === 'road')) {
-      this.road.render(ctx, VW, VH);
+    if (this.state === 'crawl' || (this.state === 'paused' && this.prevState === 'crawl')) {
+      renderBackdrop(ctx, VW, VH, { x: this.time * 30, y: Math.sin(this.time * 0.1) * 40 }, this.time, this);
       return;
     }
     const theme = this.currentTheme();
@@ -908,7 +910,7 @@ export class Game {
     for (const b of this.billboards) R.drawBillboard(ctx, b, HEADLINES[b.idx % HEADLINES.length]);
     R.drawTiles(ctx, this.level, cam, VW, VH, this.time);
     for (const g of this.glimpses) R.drawGlimpse(ctx, g);
-    for (const o of this.onramps) R.drawOnramp(ctx, o, this.time);
+    for (const o of this.doors) R.drawMindDoor(ctx, o, this.time);
     for (const f of this.flags) R.drawFlag(ctx, f, this.time);
     for (const p of this.platforms) R.drawPlatform(ctx, p);
     for (const c of this.coins) R.drawCoin(ctx, c, this.time);

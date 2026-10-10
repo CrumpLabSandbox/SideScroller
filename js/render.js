@@ -938,37 +938,44 @@ export function drawBillboard(ctx, b, text) {
   lines.forEach((l, i) => ctx.fillText(l, x + 8, by + 22 + i * 18));
 }
 
-// Dreamed Country's on-ramp: a parked station wagon and a sign for the road out of the dream.
-export function drawOnramp(ctx, o, time) {
-  const x = o.x, gy = o.y;
+// Dreamed Country's door into the mind: a door standing alone in a field, ajar, words spilling out.
+const DOOR_WORDS = ['maybe', 'what if', 'draft', 'margin', 'someday', 'chapter', 'almost', 'footnote'];
+export function drawMindDoor(ctx, o, time) {
+  const x = o.x, gy = o.y, w = 46, h = 92;
   // sign
-  const sx = x + 2.6 * T;
+  const sx = x + 2.2 * T;
   ctx.fillStyle = '#7a5235';
-  ctx.fillRect(sx + 10, gy - 118, 6, 118);
-  ctx.fillStyle = '#2f8f5a';
-  roundRect(ctx, sx - 30, gy - 150, 150, 52, 6); ctx.fill();
-  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-  roundRect(ctx, sx - 26, gy - 146, 142, 44, 4); ctx.stroke();
-  ctx.fillStyle = '#fff'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('THE ROAD OUT', sx + 45, gy - 132);
-  ctx.fillText('OF THE DREAM  →', sx + 45, gy - 116);
-  // station wagon, side view
-  const bob = Math.sin(time * 2) * 0.6;
-  ctx.fillStyle = 'rgba(0,0,0,0.25)';
-  ctx.beginPath(); ctx.ellipse(x + 40, gy - 2, 62, 6, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#2f8f8a';
-  roundRect(ctx, x - 18, gy - 40 + bob, 118, 26, 8); ctx.fill();
-  roundRect(ctx, x - 6, gy - 62 + bob, 80, 26, 8); ctx.fill();
-  ctx.fillStyle = 'rgba(170,215,235,0.8)';
-  ctx.fillRect(x + 2, gy - 58 + bob, 30, 17); ctx.fillRect(x + 36, gy - 58 + bob, 32, 17);
-  ctx.fillStyle = '#ffe2a0'; ctx.fillRect(x + 94, gy - 34 + bob, 6, 6);
-  ctx.fillStyle = '#ff4d5e'; ctx.fillRect(x - 18, gy - 34 + bob, 5, 7);
-  ctx.fillStyle = '#1a1820';
-  for (const wx of [x + 8, x + 74]) { ctx.beginPath(); ctx.arc(wx, gy - 12, 11, 0, Math.PI * 2); ctx.fill(); }
-  ctx.fillStyle = '#9aa1b0';
-  for (const wx of [x + 8, x + 74]) { ctx.beginPath(); ctx.arc(wx, gy - 12, 4.5, 0, Math.PI * 2); ctx.fill(); }
-  // keys left in the ignition, glinting
-  if (Math.sin(time * 4) > 0.6) { ctx.fillStyle = '#ffe14f'; ctx.fillRect(x + 50, gy - 46 + bob, 3, 3); }
+  ctx.fillRect(sx + 10, gy - 112, 6, 112);
+  ctx.fillStyle = '#fff3c4';
+  roundRect(ctx, sx - 34, gy - 146, 150, 46, 6); ctx.fill();
+  ctx.strokeStyle = '#8a5a3c'; ctx.lineWidth = 3;
+  roundRect(ctx, sx - 34, gy - 146, 150, 46, 6); ctx.stroke();
+  ctx.fillStyle = '#4a2f6b'; ctx.font = '800 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('A DOOR INTO', sx + 41, gy - 131);
+  ctx.fillText('THE MIND', sx + 41, gy - 115);
+  // light and words spilling out of the gap
+  const g = ctx.createRadialGradient(x + w, gy - h / 2, 4, x + w, gy - h / 2, 90);
+  g.addColorStop(0, 'rgba(255,240,190,0.55)');
+  g.addColorStop(1, 'rgba(255,240,190,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(x - 60, gy - h - 60, 220, h + 60);
+  ctx.font = 'italic 11px Georgia, serif';
+  for (let i = 0; i < DOOR_WORDS.length; i++) {
+    const t = (time * 0.35 + i / DOOR_WORDS.length) % 1;
+    ctx.fillStyle = `rgba(255,248,225,${(1 - t) * 0.9})`;
+    ctx.fillText(DOOR_WORDS[i], x + w + 10 + t * 70, gy - h * 0.7 + Math.sin(time + i * 2) * 16 - t * 40);
+  }
+  // frame, the dark inside, and the door swung open
+  ctx.fillStyle = '#5a3e2b';
+  ctx.fillRect(x - 6, gy - h - 6, w + 12, h + 6);
+  ctx.fillStyle = '#12101c';
+  ctx.fillRect(x, gy - h, w, h);
+  ctx.fillStyle = 'rgba(255,240,190,0.85)';
+  ctx.fillRect(x + w - 8, gy - h, 8, h);
+  ctx.fillStyle = '#8c5a3a';
+  ctx.beginPath(); ctx.moveTo(x, gy - h); ctx.lineTo(x + w * 0.55, gy - h - 6); ctx.lineTo(x + w * 0.55, gy + 4); ctx.lineTo(x, gy); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#ffd166';
+  ctx.beginPath(); ctx.arc(x + w * 0.45, gy - h / 2, 2.5, 0, Math.PI * 2); ctx.fill();
 }
 
 export function drawGlimpse(ctx, g) {

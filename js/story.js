@@ -220,27 +220,12 @@ LINES.mind = {
   ],
 };
 
-// The Road: Dreamed Country bends into a road-trip roguelite.
-LINES.road = {
-  enter: [
-    'This was supposed to be a platformer. Now it’s a road movie.',
-    hint('Steer with ◀ ▶. Jump to hop. Grab dream fragments to level up.'),
-    'Five counties to the edge of the dream. Each one dreamed by somebody else.',
-  ],
-  again: [
-    'You woke up at the on-ramp again. The road was waiting, a little different.',
-    'Another try at the road out. You remember more this time.',
-  ],
-  tier1: 'The billboards started advertising things that don’t exist.',
-  tier2: 'Chess pieces in the fields now. Somebody out here plays a long game.',
-  tier3: 'The furniture got out of the house and onto the highway.',
-  tier4: 'The road turned into a page. More moons than the sky can hold. Keep driving.',
-  level: ['You’re getting better at this dream.', 'Level up. The dream adjusts to you.', 'Stronger now. The road noticed.'],
-  hit: ['Dented. The dream bites back.', 'That one will show up in the morning.', 'The car took it personally.'],
-  lucky: 'The hubcap glinted. Nothing happened. Lucky.',
-  wake: ['You woke up at the on-ramp. It was only a road. Try again.', 'You woke up, the dream still warm. The car is still parked there.'],
-  end: 'The dream ran out of road. Past it: salt flats, and something missing.',
+// The Deep Mind: lines for coming back out of the dungeon crawl.
+LINES.crawl = {
+  crawlWake: ['You woke up next to the door, in the field. The door is still open.', 'You came to in the grass. The mind let you go, for now. The door waits.'],
+  crawlEnd: 'You came up out of the mind and onto the salt flats. Something out here is missing.',
 };
+Object.assign(LINES[4], LINES.crawl);
 
 // Vocabulary for each book, used by the Mind. Single words and short phrases, nothing quoted.
 export const WORDS = {
@@ -377,15 +362,6 @@ export class Story {
     this.ambientT = 24;
     if (first) for (const l of LINES.mind.enter) this.say(l);
     else this.say(LINES.mind.again[Math.floor(Math.random() * LINES.mind.again.length)]);
-  }
-
-  enterRoad(first) {
-    this.ci = 'road';
-    this.clear();
-    for (const k of [...this.used]) if (k.startsWith('special:road')) this.used.delete(k);
-    this.ambientT = 999;
-    if (first) for (const l of LINES.road.enter) this.say(l);
-    else this.say(LINES.road.again[Math.floor(Math.random() * LINES.road.again.length)]);
   }
 
   leaveMind(ci, line) {

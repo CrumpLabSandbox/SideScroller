@@ -25,7 +25,8 @@ js/level.js            tile grid + procedural chunk generator (chapter- and diff
 js/chapters.js         the book: chapter table (see novel-plan.md)
 js/story.js            narration lines, Mind vocabulary, and caption engine
 js/mind.js             the Mind: the all-text level you fall into instead of dying
-js/road.js             the Road: a pseudo-3D roguelite road trip inside Dreamed Country
+js/crawl.js            the Deep Mind: turn-based dungeon crawl logic (floors, foes, boons, events)
+js/crawlview.js        the Deep Mind's tap-to-choose view (map, foe, log, choice buttons)
 js/render.js           per-chapter themes, parallax layers, tile skins, sprites, particles, overlays
 js/input.js            keyboard + multi-touch zones (left / right / jump) with edge detection
 js/audio.js            WebAudio synth SFX + per-chapter music arrangements, mute persisted

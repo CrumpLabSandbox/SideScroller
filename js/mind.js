@@ -673,6 +673,28 @@ function buildArt() {
   return { clouds, spirals, rings, streams, fabric, haze };
 }
 
+// The Mind's layered word backdrop, for other modes that happen inside the mind (the Deep Mind).
+// `holder` keeps the low-resolution canvas between frames.
+export function renderBackdrop(ctx, VW, VH, cam, time, holder) {
+  const bw = Math.ceil(VW * BG_RES), bh = Math.ceil(VH * BG_RES);
+  if (!holder.mindBg || holder.mindBg.width !== bw || holder.mindBg.height !== bh) {
+    holder.mindBg = document.createElement('canvas');
+    holder.mindBg.width = bw; holder.mindBg.height = bh;
+  }
+  const b = holder.mindBg.getContext('2d');
+  b.setTransform(BG_RES, 0, 0, BG_RES, 0, 0);
+  const g = b.createLinearGradient(0, 0, 0, VH);
+  g.addColorStop(0, '#1b1531');
+  g.addColorStop(1, '#07060e');
+  b.fillStyle = g;
+  b.fillRect(0, 0, VW, VH);
+  Mind.prototype.drawBackgroundWords.call({ cam, time }, b, VW, VH);
+  b.globalAlpha = 1;
+  b.fillStyle = 'rgba(7,6,14,0.35)';
+  b.fillRect(0, 0, VW, VH);
+  ctx.drawImage(holder.mindBg, 0, 0, VW, VH);
+}
+
 // The regular world dissolving into words as you fall out of the story.
 export function drawWordRain(ctx, VW, VH, amount, time) {
   if (amount <= 0) return;

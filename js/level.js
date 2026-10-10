@@ -110,7 +110,7 @@ export class Level {
     if (ci > this.gated) type = 'gate';
     else if (this.sinceCheckpoint >= 8) type = 'checkpoint';
     else if (this.chunkCount <= 2) type = this.chunkCount === 1 ? 'gap' : 'flat';
-    else if (ch.key === 'dream' && !this.onrampPlaced && this.chunksInChapter >= 7) type = 'onramp';
+    else if (ch.key === 'dream' && !this.doorPlaced && this.chunksInChapter >= 7) type = 'mindDoor';
     else if (ch.key === 'gray' && !this.vaseChapters.has(ci) && this.chunksInChapter >= 4 && r() < 0.4) type = 'vase';
     else type = this._pick(ch.pool);
     this.lastType = type;
@@ -346,17 +346,17 @@ export class Level {
     this.genCol = c + len;
   }
 
-  // Dreamed Country's on-ramp: a checkpoint, a parked car, and the road out of the dream.
-  _onramp(d) {
+  // Dreamed Country's door: a checkpoint and a door standing alone in a field, into the mind.
+  _mindDoor(d) {
     const c = this.genCol;
     const len = 12;
     this.fillGround(c, c + len - 1, this.groundRow);
     this.spawn({ type: 'checkpoint', x: (c + 2) * T + T / 2, y: this.groundRow * T });
-    this.spawn({ type: 'onramp', x: (c + 7) * T, y: this.groundRow * T });
+    this.spawn({ type: 'mindDoor', x: (c + 7) * T, y: this.groundRow * T });
     const last = this.regions[this.regions.length - 1];
     if (last) last.c1 = Math.min(last.c1, c - 1);
     this.sinceCheckpoint = 0;
-    this.onrampPlaced = true;
+    this.doorPlaced = true;
     this.genCol = c + len;
   }
 

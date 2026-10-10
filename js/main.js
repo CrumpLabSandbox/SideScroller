@@ -5,6 +5,7 @@ import { Story, readPref, writePref } from './story.js';
 import { CHAPTERS, LAST_CHAPTER } from './chapters.js';
 import { drawTouchHints } from './render.js';
 import { getArt } from './mind.js';
+import { CrawlView } from './crawlview.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d', { alpha: false });
@@ -37,7 +38,7 @@ const ui = {
     if (name) { $('caption').classList.remove('show'); }
     if (name === 'pause') {
       const ch = CHAPTERS[game.chapterIdx];
-      $('pause-chapter').textContent = game.road ? 'On the road out of the dream' : game.mind ? 'Inside the mind' : game.chapterIdx > 0 ? `${ch.num} · ${ch.title}` : '';
+      $('pause-chapter').textContent = game.crawl ? 'Deep in the mind' : game.mind ? 'Inside the mind' : game.chapterIdx > 0 ? `${ch.num} · ${ch.title}` : '';
       updateSettingsBtns();
     }
   },
@@ -62,34 +63,25 @@ const ui = {
   },
   endCard(on) { $('end-card').classList.toggle('show', on); },
   arrestHud(on) { $('hud').classList.toggle('arrested', on); },
-  // The Mind and the Road replace the side-scroller's HUD with their own.
+  // The Mind and the Deep Mind replace the side-scroller's HUD with their own.
   altMode(on) {
     document.body.classList.toggle('in-mind', on);
     if (on) { $('chapter-card').classList.remove('show'); $('end-card').classList.remove('show'); }
   },
-  roadChoice(choice, onPick) {
-    const el = $('road-choice');
-    document.body.classList.toggle('choosing', !!choice);
-    if (!choice) { el.classList.add('hidden'); return; }
-    el.querySelector('.rc-title').textContent = choice.title;
-    el.querySelector('.rc-sub').textContent = choice.sub || '';
-    const box = el.querySelector('.rc-options');
-    box.innerHTML = '';
-    choice.options.forEach((o, i) => {
-      const b = document.createElement('button');
-      b.className = 'rc-card' + (i === choice.idx ? ' sel' : '');
-      b.innerHTML = `<span class="rc-tag"></span><strong></strong><span class="rc-text"></span>`;
-      b.querySelector('.rc-tag').textContent = o.tag || '';
-      b.querySelector('strong').textContent = o.name;
-      b.querySelector('.rc-text').textContent = o.text;
-      b.addEventListener('click', () => { sound.unlock(); onPick(i); });
-      box.appendChild(b);
-    });
+  crawlOpen(crawl) {
+    const el = $('crawl');
     el.classList.remove('hidden');
+    document.body.classList.add('in-crawl');
+    this.crawlView = new CrawlView(el, crawl, { onChange: () => {}, sound });
   },
-  roadChoiceSelect(idx) {
-    [...$('road-choice').querySelectorAll('.rc-card')].forEach((b, i) => b.classList.toggle('sel', i === idx));
+  crawlClose() {
+    $('crawl').classList.add('hidden');
+    $('crawl').innerHTML = '';
+    document.body.classList.remove('in-crawl');
+    this.crawlView = null;
   },
+  crawlNav(d) { if (this.crawlView) this.crawlView.nav(d); },
+  crawlActivate() { if (this.crawlView) this.crawlView.activate(); },
 };
 
 const story = new Story(ui);
@@ -138,8 +130,8 @@ async function goFullscreen() {
 function startGame(chapter) {
   sound.unlock();
   ui.show(null);
-  game.start(params.has('road') ? 4 : debugChapter ?? chapter);
-  if (params.has('road')) game.enterRoad();   // debug: straight onto the road
+  game.start(params.has('crawl') ? 4 : debugChapter ?? chapter);
+  if (params.has('crawl')) game.enterCrawl();   // debug: straight through the door
 }
 
 $('btn-play').addEventListener('click', () => { startGame(0); if (isTouch) goFullscreen(); });
@@ -150,9 +142,9 @@ $('btn-quit').addEventListener('click', () => {
   game.recordBest();
   game.state = 'title';
   game.mind = null;
-  game.road = null;
+  game.crawl = null;
   ui.altMode(false);
-  ui.roadChoice(null);
+  ui.crawlClose();
   sound.stopMusic();
   game.newGame(0);
   $('end-card').classList.remove('show');
@@ -169,7 +161,7 @@ $('btn-textsize').addEventListener('click', () => {
   writePref('hd_textsize', large ? 'large' : 'normal');
   updateSettingsBtns();
 });
-input.onPause = () => { if (['playing', 'respawn', 'mind', 'dying', 'road', 'paused'].includes(game.state)) game.togglePause(); };
+input.onPause = () => { if (['playing', 'respawn', 'mind', 'dying', 'crawl', 'paused'].includes(game.state)) game.togglePause(); };
 input.onMute = toggleMute;
 input.onAny = () => sound.unlock();
 
@@ -199,7 +191,7 @@ let last = performance.now(), acc = 0;
 let slowFrames = 0, sampled = 0;
 function adaptQuality(dt) {
   // If the game runs well below 60fps for a few seconds, render at a lower resolution.
-  if (!['playing', 'mind', 'road'].includes(game.state) || dprCap <= 1 || dt > 0.1) return;
+  if (!['playing', 'mind'].includes(game.state) || dprCap <= 1 || dt > 0.1) return;
   sampled++;
   if (dt > 1 / 45) slowFrames++;
   if (sampled >= 180) {
@@ -217,7 +209,7 @@ function frame(now) {
   while (acc >= STEP && n < 8) { game.step(STEP); acc -= STEP; n++; }
   if (n === 8) acc = 0;
   game.render(ctx, dpr, scale);
-  if ((game.state === 'playing' || game.state === 'mind' || (game.state === 'road' && game.road.state === 'drive')) && isTouch) {
+  if ((game.state === 'playing' || game.state === 'mind') && isTouch) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     drawTouchHints(ctx, input.zones, window.innerWidth, window.innerHeight, true);
   }

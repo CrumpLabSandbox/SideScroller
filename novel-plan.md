@@ -32,7 +32,7 @@ cross-fade over one chunk so changes feel like a drift, not a level switch.
 | 1 | **The Tail** | 150–350 m | *Gun, with Occasional Music*; *Motherless Brooklyn* | Rain and sodium streetlights. Walkers wear hats and coats. Score is relabeled **Karma** and can be docked (falling costs karma). A hardboiled narrator whose sentences sometimes catch on a word and riff on it. |
 | 2 | **Stoop Ball** | 350–550 m | *The Fortress of Solitude* | 1970s Brooklyn: brownstone tiles with stoops, fire escapes as platforms, a pink rubber ball as a bouncing hazard, comic-panel borders that flicker at the screen edges. Your own graffiti tag appears on walls at each checkpoint you pass. The chapter ends when you find a ring. |
 | 3 | **Flight, Then Less** | 550–750 m | *The Fortress of Solitude* | The ring: hold jump to fly on a small meter. Halfway through, it turns. Flight goes and invisibility comes: enemies stop tracking you, your sprite fades, and the narrator starts losing track of you too. |
-| 4 | **Dreamed Country** | 750–950 m | *Amnesia Moon* | The road crosses territories shaped by whoever dreams them. A roadside sign announces each region's rule before it starts: low gravity, slow time, steady wind, everything slightly too small. |
+| 4 | **Dreamed Country** | 750–950 m | *Amnesia Moon* | The land is divided into territories shaped by whoever dreams them. A roadside sign announces each region's rule before it starts: low gravity, slow time, steady wind, everything slightly too small. |
 | 5 | **The Lack** | 950–1150 m | *As She Climbed Across the Table* | A drifting void that swallows some things and refuses others. It has taste. Each run it picks a preference (coins, enemies, or platforms) and the narration hints at it. Learning its taste is the puzzle. |
 | 6 | **The Gray** | 1150–1350 m | *Chronic City* | Fog eats the background from the far layers inward. Headlines scroll on billboards. Something tiger-shaped tunnels under the street, collapsing ground behind you and sometimes ahead (always telegraphed by cracks). A rare, almost-invisible vase to collect. |
 | 7 | **The Arrest** | 1350–1550 m | *The Arrest* | Technology stops. The music thins to one voice, then silence. The HUD unbolts and falls off the screen. The double jump stops working. The sky stops cycling. Single jumps, quiet running, narration only; the level design softens to match. |
@@ -62,30 +62,36 @@ label that grows from "a figment" to "a notion", "an idea", "a premise" and fina
 
 Code: `js/mind.js` (generation, figment physics, rendering), Mind lines and vocabulary in `js/story.js`.
 
-## The Road (genre bend: Dreamed Country becomes a roguelite road trip)
-Partway through Dreamed Country an on-ramp appears: a checkpoint, a parked station wagon, and a sign
-reading THE ROAD OUT OF THE DREAM. Walk into the car and the platformer becomes a pseudo-3D road game.
-"This was supposed to be a platformer. Now it's a road movie."
+## The Deep Mind (genre bend: Dreamed Country becomes a dungeon crawl)
+Partway through Dreamed Country, after a checkpoint, a door stands ajar in a field with words
+spilling out of it and a sign reading A DOOR INTO THE MIND. Walk through it and the platformer
+becomes a turn-based dungeon crawl. Nothing needs reflexes: every turn is a decision.
+"This was supposed to be a platformer. Now it's a dungeon crawl, and you're the one being written."
 
-- **Controls.** ◀ ▶ steer, jump hops the car over things. Collect dream fragments (glowing words).
-- **Leveling.** Fragments are experience. Each level-up pauses the drive and offers three perks:
-  Wider Tires, Shock Absorbers, Sleepwalker, Magnet Radio, Long Hop, Night Eyes, Lucky Hubcap,
-  A Kangaroo in a Good Suit (a hitchhiker who grabs fragments from the next lane), Second Gear,
-  Dream Logic, Roadside Mechanic. The driver gains a scarf, a fedora, a halo, then orbiting words.
-- **Five legs, dreamed towns.** Between legs you stop in a town dreamed by someone (a retired
-  projectionist, a dog, the radio…). The motel fixes a dent and you choose between two roads, each
-  with its county's rule: always night, a road that remembers being a river, Sunday forever, gravity
-  as a rumor, fog of forgetting, a radio that pulls fragments in, too much furniture. The stranger
-  road pays more fragments and raises strangeness faster.
-- **Strangeness.** Five tiers change everything: pink dusk desert, impossible billboards, chessboard
-  fields with chess-piece obstacles, furniture loose on the highway, and finally a road made of a page
-  under seven moons with words in the sky. The car becomes a convertible, a sofa, a bathtub, a typewriter.
-- **Nobody dies.** Three dents and you wake up at the on-ramp. Each wake-up is remembered: the next
-  attempt starts with a gift perk (up to two). Finish all five legs and the dream runs out of road into
-  Chapter Five, The Lack, with a karma bonus.
-- Debug: `?road` starts straight on the road.
+- **Explore by choosing.** Each floor is a small map of rooms. Tap a glowing door to go there: a foe,
+  something odd, something left behind, a stoop to rest on, a bodega, or stairs down. Night Eyes shows
+  what is behind every door.
+- **Four floors.** The Lobby of First Drafts, Brooklyn Remembered, The Detective's Floor, and The
+  County of Dreams, which ends at the Blank Page. Each floor has its own foes, rooms, and music.
+- **Word-fights.** Foes are words from the books: a cliché, an adverb ("SUDDENLY"), writer's block,
+  the big kid on the stoop, pigeons, a man who keeps changing, the hood, the inquisitor, a kangaroo in
+  a good suit, a nightmare, a rule, the Lack (immune to plain strikes), the Blank Page. Each shows what
+  it will do next. Answer with Strike (Wit), Guard (Nerve), Riff (spend words), or Ask a Question
+  (once a fight, costs karma, exposes its weak spot), plus moves from boons.
+- **Leveling.** Beating foes and odd rooms gives experience. Each level adds Heart and offers a choice
+  of boons: Sharper (+Wit), Steadier (+Nerve), Thicker Skin (+Heart), the Ring, Second Thought, Wordplay, Stoop
+  Ball, Collage, a Kangaroo in a Good Suit, Lucky Dime, Footnotes, Night Eyes, Insight.
+- **Odd rooms.** Fourteen choice events in Lethem's register: a mirror made of paragraphs, a genre
+  that wants to change you, a sheep in a cardigan who keeps karma, a tunneling tiger, a radio, a hole,
+  the vase. Every option shows its odds or price.
+- **Nobody dies.** Run out of Heart and you wake in the field next to the door. Each wake-up is
+  remembered: the next attempt starts with a gift boon (up to two). Erase the Blank Page and you come
+  up out of the mind onto the salt flats of Chapter Five, The Lack, with a karma bonus.
+- **Controls.** Tap rooms and choices. On a keyboard, ◀ ▶ move the highlight and jump picks it.
+- Debug: `?crawl` starts straight in the Deep Mind.
 
-Code: `js/road.js` (renderer, track generation, run structure, art), road lines in `js/story.js`.
+Code: `js/crawl.js` (pure logic: floors, foes, boons, events, balance), `js/crawlview.js` (DOM view),
+crawl lines in `js/story.js`, the door in `js/level.js` and `js/render.js`.
 
 ## Systems to build
 1. **Story engine** (`js/story.js`): chapter table keyed by distance; event triggers (first stomp,
@@ -137,5 +143,5 @@ targeted tests for each mechanic, and a full start-to-epilogue run.
 - `js/render.js` — themes, skylines, tile skins, overlays (rain, fog, comic panel, dream tint).
 - `js/audio.js` — one arrangement per chapter plus layers the Arrest strips away, and the Mind's music.
 - `js/mind.js` — the Mind: the level you fall into instead of dying.
-- `js/road.js` — the Road: Dreamed Country's roguelite road trip.
+- `js/crawl.js`, `js/crawlview.js` — the Deep Mind: Dreamed Country's dungeon crawl.
 - Debug: append `?chapter=N` (0–8) to the URL to start at a chapter.
