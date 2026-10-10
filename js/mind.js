@@ -16,6 +16,7 @@ const BOOK_RGB = [[255, 200, 97], [127, 224, 255]];
 const STAGES = [[0, 'a figment'], [3, 'a notion'], [5, 'an idea'], [8, 'a premise'], [MIND_GOAL, 'a story']];
 const DEATH_Y = 650;
 const ALL_WORDS = Object.values(WORDS).flat();
+const BG_RES = 1;      // background resolution in pixels per world unit
 
 const pick = (rng, list) => list[Math.floor(rng() * list.length)];
 
@@ -254,12 +255,25 @@ export class Mind {
 
   // ---- render -----------------------------------------------------------------
   render(ctx, VW, VH) {
-    const g = ctx.createLinearGradient(0, 0, 0, VH);
+    // The background is many translucent layers; it is drawn at a lower resolution into its own
+    // canvas (cheap, and the softness reads as depth of field), then placed in one step.
+    const bw = Math.ceil(VW * BG_RES), bh = Math.ceil(VH * BG_RES);
+    if (!this.bg || this.bg.width !== bw || this.bg.height !== bh) {
+      this.bg = document.createElement('canvas');
+      this.bg.width = bw; this.bg.height = bh;
+    }
+    const b = this.bg.getContext('2d');
+    b.setTransform(BG_RES, 0, 0, BG_RES, 0, 0);
+    const g = b.createLinearGradient(0, 0, 0, VH);
     g.addColorStop(0, '#1b1531');
     g.addColorStop(1, '#07060e');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, VW, VH);
-    this.drawBackgroundWords(ctx, VW, VH);
+    b.fillStyle = g;
+    b.fillRect(0, 0, VW, VH);
+    this.drawBackgroundWords(b, VW, VH);
+    b.globalAlpha = 1;
+    b.fillStyle = 'rgba(7,6,14,0.2)';   // push the background back so the playable words stand out
+    b.fillRect(0, 0, VW, VH);
+    ctx.drawImage(this.bg, 0, 0, VW, VH);
 
     ctx.save();
     ctx.translate(-Math.round(this.cam.x), -Math.round(this.cam.y));
@@ -337,6 +351,7 @@ export class Mind {
     ctx.globalAlpha = 1;
     ctx.restore();
 
+    this.drawForegroundWords(ctx, VW, VH);
     this.drawHud(ctx, VW);
     const dark = Math.max(this.fade, this.state === 'forgotten' || this.state === 'erased' ? Math.min(1, this.t / 0.8) : 0);
     if (dark > 0) { ctx.fillStyle = `rgba(7,6,14,${dark})`; ctx.fillRect(0, 0, VW, VH); }
@@ -344,27 +359,102 @@ export class Mind {
     if (white > 0) { ctx.fillStyle = `rgba(250,245,232,${white})`; ctx.fillRect(0, 0, VW, VH); }
   }
 
+  // Many translucent layers of words, back to front, each moving at its own depth.
   drawBackgroundWords(ctx, VW, VH) {
-    const layers = [
-      { f: 0.2, size: 13, a: 0.07, slot: 150, row: 70, seed: 1 },
-      { f: 0.45, size: 19, a: 0.1, slot: 200, row: 96, seed: 2 },
-    ];
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    for (const L of layers) {
-      ctx.font = `italic ${L.size}px Georgia, serif`;
-      ctx.fillStyle = `rgba(205,195,255,${L.a})`;
-      const ox = this.cam.x * L.f + this.time * 4, oy = this.cam.y * L.f;
-      const i0 = Math.floor(ox / L.slot) - 1, i1 = Math.ceil((ox + VW) / L.slot) + 1;
-      const j0 = Math.floor(oy / L.row) - 1, j1 = Math.ceil((oy + VH) / L.row) + 1;
+    const A = getArt();
+    const cam = this.cam, t = this.time;
+    // grid helper: place things on a 2D grid in each layer's own parallax space
+    const grid = (L, fn) => {
+      const ox = cam.x * L.f + t * (L.drift || 0), oy = cam.y * L.f * 0.6;
+      const i0 = Math.floor((ox - L.pad) / L.sx), i1 = Math.ceil((ox + VW + L.pad) / L.sx);
+      const j0 = Math.floor((oy - L.pad) / L.sy), j1 = Math.ceil((oy + VH + L.pad) / L.sy);
       for (let i = i0; i <= i1; i++) {
         for (let j = j0; j <= j1; j++) {
-          if (hash2(i * 7 + L.seed, j) < 0.35) continue;
-          const word = ALL_WORDS[Math.floor(hash2(i, j + L.seed * 13) * ALL_WORDS.length)];
-          ctx.fillText(word, i * L.slot - ox + hash2(i, j + 5) * 60, j * L.row - oy + hash2(i + 3, j) * 30);
+          if (hash2(i * 13 + L.seed, j * 7 + L.seed) > L.density) continue;
+          fn(i * L.sx - ox + hash2(i, j + L.seed) * L.sx * 0.6, j * L.sy - oy + hash2(i + L.seed, j) * L.sy * 0.6, hash2(i + 31, j + L.seed * 3), i, j);
+        }
+      }
+    };
+    const sprite = (img, x, y, scale, alpha, rot = 0) => {
+      const w = img.w * scale, h = img.h * scale;
+      ctx.globalAlpha = alpha;
+      if (rot) {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+        ctx.drawImage(img.c, -w / 2, -h / 2, w, h);
+        ctx.restore();
+      } else ctx.drawImage(img.c, x - w / 2, y - h / 2, w, h);
+    };
+
+    // 1. haze: soft glows of color far behind everything
+    grid({ f: 0.03, drift: 2, sx: 620, sy: 460, pad: 420, seed: 3, density: 0.45 }, (x, y, h) => sprite(A.haze[Math.floor(h * A.haze.length)], x, y, 3 + h * 2, 0.55));
+    // 2. giant faint words looming in the distance
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    grid({ f: 0.06, drift: 3, sx: 460, sy: 260, pad: 300, seed: 5, density: 0.55 }, (x, y, h, i, j) => {
+      ctx.globalAlpha = 0.05;
+      ctx.font = `italic 700 ${Math.round(90 + h * 90)}px Georgia, serif`;
+      ctx.fillStyle = '#d8ccff';
+      ctx.fillText(ALL_WORDS[Math.floor(hash2(i, j + 77) * ALL_WORDS.length)], x, y);
+    });
+    // 3. a fabric of tiny words, tiled
+    {
+      const tile = A.fabric, f = 0.1;
+      const ox = ((cam.x * f + t * 5) % tile.w + tile.w) % tile.w, oy = ((cam.y * f * 0.6) % tile.h + tile.h) % tile.h;
+      ctx.globalAlpha = 0.13;
+      for (let x = -ox; x < VW; x += tile.w) for (let y = -oy; y < VH; y += tile.h) ctx.drawImage(tile.c, x, y, tile.w, tile.h);
+    }
+    // 4. far clouds of words
+    grid({ f: 0.15, drift: 6, sx: 280, sy: 190, pad: 220, seed: 9, density: 0.5 }, (x, y, h) => {
+      sprite(A.clouds[Math.floor(h * A.clouds.length)], x, y + Math.sin(t * 0.3 + h * 9) * 6, 0.45 + h * 0.25, 0.24);
+    });
+    // 5. spirals and rings of words, slowly turning
+    grid({ f: 0.22, drift: 4, sx: 560, sy: 360, pad: 260, seed: 11, density: 0.45 }, (x, y, h) => {
+      const shapes = A.spirals.concat(A.rings);
+      const img = shapes[Math.floor(h * shapes.length)];
+      sprite(img, x, y, 0.6 + h * 0.5, 0.24, t * (h > 0.5 ? 0.06 : -0.05) + h * 6);
+    });
+    // 6. streams: long rivers of small words flowing across
+    grid({ f: 0.28, drift: 14, sx: 760, sy: 150, pad: 400, seed: 13, density: 0.35 }, (x, y, h) => {
+      sprite(A.streams[Math.floor(h * A.streams.length)], x, y, 0.8 + h * 0.4, 0.3);
+    });
+    // 7. nearer clouds of words
+    grid({ f: 0.38, drift: 9, sx: 460, sy: 280, pad: 300, seed: 17, density: 0.38 }, (x, y, h) => {
+      sprite(A.clouds[Math.floor(h * A.clouds.length)], x, y + Math.sin(t * 0.4 + h * 7) * 8, 0.85 + h * 0.4, 0.28);
+    });
+    // 8. loose words of every size
+    ctx.textAlign = 'left';
+    grid({ f: 0.5, drift: 5, sx: 190, sy: 100, pad: 120, seed: 19, density: 0.55 }, (x, y, h, i, j) => {
+      ctx.globalAlpha = 0.07 + h * 0.07;
+      ctx.font = `${h > 0.6 ? 'italic ' : ''}${Math.round(11 + h * 20)}px Georgia, serif`;
+      ctx.fillStyle = '#cdc3ff';
+      ctx.fillText(ALL_WORDS[Math.floor(hash2(i + 5, j) * ALL_WORDS.length)], x, y);
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  // A faint layer of big drifting words and clouds in front of everything.
+  drawForegroundWords(ctx, VW, VH) {
+    const A = getArt();
+    const f = 1.35, sx = 640, sy = 420;
+    const ox = this.cam.x * f + this.time * 18, oy = this.cam.y * f * 0.6;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (let i = Math.floor((ox - 300) / sx); i <= Math.ceil((ox + VW + 300) / sx); i++) {
+      for (let j = Math.floor((oy - 300) / sy); j <= Math.ceil((oy + VH + 300) / sy); j++) {
+        const h = hash2(i * 3 + 101, j * 5 + 7);
+        if (h > 0.45) continue;
+        const x = i * sx - ox + hash2(i, j + 40) * sx * 0.5, y = j * sy - oy + hash2(i + 40, j) * sy * 0.5;
+        if (h < 0.2) {
+          const img = A.clouds[Math.floor(hash2(i, j) * A.clouds.length)];
+          ctx.globalAlpha = 0.1;
+          ctx.drawImage(img.c, x - img.w * 0.9, y - img.h * 0.9, img.w * 1.8, img.h * 1.8);
+        } else {
+          ctx.globalAlpha = 0.07;
+          ctx.font = `italic ${Math.round(60 + h * 60)}px Georgia, serif`;
+          ctx.fillStyle = '#efe6ff';
+          ctx.fillText(ALL_WORDS[Math.floor(hash2(i + 9, j) * ALL_WORDS.length)], x, y);
         }
       }
     }
+    ctx.globalAlpha = 1;
   }
 
   drawFigment(ctx) {
@@ -458,6 +548,129 @@ export class Mind {
       ctx.fillText(`${b} ${this.books[1].title}`, x + w, y + 32);
     }
   }
+}
+
+// ---- pre-rendered word art for the Mind's background ------------------------------
+// Each piece is drawn once into an offscreen canvas, then reused every frame.
+let ART = null;
+export function getArt() { return ART || (ART = buildArt()); }
+
+function buildArt() {
+  const S = Math.min(1.75, window.devicePixelRatio || 1);
+  const rng = mulberry32(20231);
+  const canvas = (w, h) => {
+    const c = document.createElement('canvas');
+    c.width = Math.ceil(w * S); c.height = Math.ceil(h * S);
+    const x = c.getContext('2d');
+    x.scale(S, S);
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    return { c, x, w, h };
+  };
+  const word = () => ALL_WORDS[Math.floor(rng() * ALL_WORDS.length)];
+  // lavender, rose, slate and violet: amber and cyan are kept for the words you can collect
+  const TINTS = ['232,224,255', '255,196,220', '190,205,240', '214,190,255'];
+
+  // clouds: words packed into a lumpy cloud, big in the middle, small and faint at the edges
+  const clouds = [];
+  for (let k = 0; k < 8; k++) {
+    const W = 340, H = 190, a = canvas(W, H), tint = TINTS[k % TINTS.length];
+    const blobs = Array.from({ length: 4 + Math.floor(rng() * 3) }, (_, b) => ({
+      x: W * (0.22 + (b / 6) * 0.56 + (rng() - 0.5) * 0.1), y: H * (0.5 + (rng() - 0.5) * 0.25), r: 45 + rng() * 40,
+    }));
+    for (let n = 0; n < 90; n++) {
+      const x = 10 + rng() * (W - 20), y = 10 + rng() * (H - 20);
+      let best = 0;
+      for (const b of blobs) best = Math.max(best, 1 - Math.hypot(x - b.x, y - b.y) / b.r);
+      if (best <= 0) continue;
+      const size = 8 + best * 20 + rng() * 4;
+      a.x.font = `${rng() < 0.4 ? 'italic ' : ''}${rng() < 0.3 ? 700 : 400} ${size.toFixed(1)}px Georgia, serif`;
+      a.x.fillStyle = `rgba(${tint},${(0.25 + best * 0.7).toFixed(2)})`;
+      a.x.save(); a.x.translate(x, y); a.x.rotate((rng() - 0.5) * 0.35);
+      a.x.fillText(word(), 0, 0);
+      a.x.restore();
+    }
+    clouds.push(a);
+  }
+
+  // spirals: words winding outward, growing as they go
+  const spirals = [];
+  for (let k = 0; k < 2; k++) {
+    const W = 300, a = canvas(W, W), tint = TINTS[k ? 1 : 0];
+    let th = 0.6;
+    while (true) {
+      const r = 10 + th * 11;
+      if (r > W / 2 - 14) break;
+      const size = 7 + th * 1.5;
+      const w = word();
+      a.x.font = `italic ${size.toFixed(1)}px Georgia, serif`;
+      a.x.fillStyle = `rgba(${tint},${(0.9 - (r / (W / 2)) * 0.6).toFixed(2)})`;
+      a.x.save(); a.x.translate(W / 2 + Math.cos(th) * r, W / 2 + Math.sin(th) * r); a.x.rotate(th + Math.PI / 2);
+      a.x.fillText(w, 0, 0);
+      a.x.restore();
+      th += (a.x.measureText(w).width + 8) / r;
+    }
+    spirals.push(a);
+  }
+
+  // rings: words circling at two radii
+  const rings = [];
+  for (let k = 0; k < 2; k++) {
+    const W = 300, a = canvas(W, W), tint = TINTS[k ? 3 : 2];
+    for (const [r, size] of [[132, 14], [96, 11], [64, 9]]) {
+      let th = rng() * 6.28, end = th + Math.PI * 2 - 0.2;
+      a.x.font = `${size}px Georgia, serif`;
+      while (th < end) {
+        const w = word();
+        a.x.fillStyle = `rgba(${tint},${(0.35 + rng() * 0.5).toFixed(2)})`;
+        a.x.save(); a.x.translate(W / 2 + Math.cos(th) * r, W / 2 + Math.sin(th) * r); a.x.rotate(th + Math.PI / 2);
+        a.x.fillText(w, 0, 0);
+        a.x.restore();
+        th += (a.x.measureText(w).width + 10) / r;
+      }
+    }
+    rings.push(a);
+  }
+
+  // streams: a long wavy river of small words
+  const streams = [];
+  for (let k = 0; k < 3; k++) {
+    const W = 760, H = 60, a = canvas(W, H), tint = TINTS[k];
+    let x = 10;
+    while (x < W - 40) {
+      const w = word(), size = 9 + rng() * 6;
+      a.x.font = `${rng() < 0.5 ? 'italic ' : ''}${size.toFixed(1)}px Georgia, serif`;
+      a.x.textAlign = 'left';
+      a.x.fillStyle = `rgba(${tint},${(0.35 + 0.55 * Math.sin((x / W) * Math.PI)).toFixed(2)})`;
+      a.x.fillText(w, x, H / 2 + Math.sin(x * 0.018 + k) * 14);
+      x += a.x.measureText(w).width + 7;
+    }
+    streams.push(a);
+  }
+
+  // fabric: a tile thick with tiny words
+  const fabric = canvas(760, 340);
+  for (let n = 0; n < 340; n++) {
+    fabric.x.font = `${rng() < 0.3 ? 'italic ' : ''}${(6 + rng() * 5).toFixed(1)}px Georgia, serif`;
+    fabric.x.textAlign = 'left';
+    fabric.x.fillStyle = `rgba(210,200,255,${(0.2 + rng() * 0.6).toFixed(2)})`;
+    const w = word();
+    const tw = fabric.x.measureText(w).width;
+    fabric.x.fillText(w, rng() * (760 - tw), 6 + rng() * 328);
+  }
+
+  // haze: soft colored glows
+  const haze = ['120,80,220', '60,90,200', '170,80,150', '80,110,190'].map((rgb) => {
+    const a = canvas(128, 128);
+    const g = a.x.createRadialGradient(64, 64, 0, 64, 64, 64);
+    g.addColorStop(0, `rgba(${rgb},0.35)`);
+    g.addColorStop(0.5, `rgba(${rgb},0.12)`);
+    g.addColorStop(1, `rgba(${rgb},0)`);
+    a.x.fillStyle = g;
+    a.x.fillRect(0, 0, 128, 128);
+    return a;
+  });
+
+  return { clouds, spirals, rings, streams, fabric, haze };
 }
 
 // The regular world dissolving into words as you fall out of the story.

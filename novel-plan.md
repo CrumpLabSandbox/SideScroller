@@ -54,6 +54,11 @@ label that grows from "a figment" to "a notion", "an idea", "a premise" and fina
 - **Ways to leave early.** Touch a redaction bar and you are erased; drift off the bottom and you are
   forgotten. Either way you go back to your last checkpoint with full hearts.
 - **Clichés** float over some sentences; touching one knocks a word loose.
+- **Depth.** Behind the play space are many translucent layers moving at their own speeds: colored
+  haze, giant faint words, a fabric of tiny words, clouds of words at two distances, slowly turning
+  spirals and rings of words, rivers of words, loose words of every size, and a faint foreground
+  layer drifting in front. The art is drawn once into offscreen canvases and the background is
+  composited at reduced resolution, so it costs about the same as a regular chapter.
 
 Code: `js/mind.js` (generation, figment physics, rendering), Mind lines and vocabulary in `js/story.js`.
 

@@ -4,6 +4,7 @@ import { Game, MAX_HEARTS } from './game.js';
 import { Story, readPref, writePref } from './story.js';
 import { CHAPTERS, LAST_CHAPTER } from './chapters.js';
 import { drawTouchHints } from './render.js';
+import { getArt } from './mind.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d', { alpha: false });
@@ -201,6 +202,11 @@ requestAnimationFrame(frame);
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
+
+// Build the Mind's word art while the player is still on the title screen, so the first
+// fall into the Mind doesn't stutter.
+const warmMind = () => { try { getArt(); } catch (_) { /* built on demand instead */ } };
+if ('requestIdleCallback' in window) requestIdleCallback(warmMind, { timeout: 4000 }); else setTimeout(warmMind, 1500);
 
 // Debug handle (used by the automated tests).
 window.hollowDash = { game, input, sound, story };
