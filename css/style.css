@@ -35,7 +35,50 @@ html, body {
 }
 #hearts { letter-spacing: 2px; font-size: 20px; color: #ff4f6a; }
 #hearts .heart.off { color: rgba(255,255,255,.25); }
-.hud-score { margin-left: auto; margin-right: auto; font-size: 22px; min-width: 70px; text-align: center; font-variant-numeric: tabular-nums; }
+.hud-score { margin-left: auto; margin-right: auto; font-size: 22px; min-width: 70px; text-align: center; font-variant-numeric: tabular-nums; display: flex; align-items: baseline; gap: 6px; justify-content: center; }
+#score-label { font-size: 10px; letter-spacing: 2px; opacity: .75; }
+#score-label:empty { display: none; }
+#hud.arrested .hud-item { animation: unbolt 1.6s cubic-bezier(.5,0,.9,.5) forwards; }
+#hud.arrested .hud-item:nth-child(2) { animation-delay: .5s; }
+#hud.arrested .hud-item:nth-child(3) { animation-delay: 1s; }
+@keyframes unbolt {
+  0% { transform: none; }
+  15% { transform: rotate(-8deg); }
+  25% { transform: rotate(5deg); }
+  100% { transform: translateY(120vh) rotate(40deg); opacity: 0; }
+}
+
+#caption {
+  position: fixed; z-index: 4; left: 50%; transform: translateX(-50%);
+  top: calc(62px + var(--sat)); max-width: min(78vw, 640px);
+  padding: 9px 14px; border-radius: 12px;
+  background: rgba(8, 8, 22, 0.62); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  font: 500 var(--cap-size, 16px)/1.35 Georgia, "Times New Roman", serif; text-align: center;
+  color: #f3eee2; text-shadow: 0 1px 2px rgba(0,0,0,.6);
+  pointer-events: none; opacity: 0; transition: opacity .35s;
+}
+#caption.show { opacity: 1; }
+#caption.hint { font-family: var(--ui-font); font-weight: 700; color: #ffe08a; }
+#caption .ghost { visibility: hidden; }
+body.large-text { --cap-size: 20px; }
+
+#chapter-card, #end-card {
+  position: fixed; z-index: 5; left: 50%; top: 42%; transform: translate(-50%, -50%);
+  text-align: center; pointer-events: none; opacity: 0; transition: opacity .9s;
+  text-shadow: 0 2px 10px rgba(0,0,0,.7); width: min(90vw, 620px);
+}
+#chapter-card.show, #end-card.show { opacity: 1; }
+#chapter-card { padding: 22px 10px; background: radial-gradient(ellipse at center, rgba(6,6,16,.42) 0%, rgba(6,6,16,.2) 55%, rgba(6,6,16,0) 75%); }
+.cc-after { font: italic 15px/1.4 Georgia, serif; opacity: .85; margin-bottom: 14px; }
+.cc-after:empty { display: none; }
+.cc-num { font: 700 13px var(--ui-font); letter-spacing: 6px; text-transform: uppercase; opacity: .9; }
+.cc-title { font: 700 clamp(30px, 7vmin, 52px)/1.1 Georgia, serif; margin-top: 6px; }
+#end-card { background: rgba(250, 245, 232, 0.94); color: #2a2420; text-shadow: none; padding: 20px 26px; border-radius: 6px; top: 50%; }
+#end-card .ec-title { font: 700 clamp(30px, 7vmin, 46px) Georgia, serif; margin-bottom: 6px; }
+#end-card p { margin: 6px 0; font: 15px/1.4 Georgia, serif; }
+#end-card ul { list-style: none; margin: 6px 0; padding: 0; font: 14px/1.5 Georgia, serif; columns: 2; }
+#end-card .ec-after { font-style: italic; opacity: .7; }
+@media (max-height: 420px) { #end-card ul { font-size: 12px; } #end-card p { font-size: 13px; } }
 .hud-coins { display: flex; align-items: center; gap: 6px; color: #ffd24a; }
 .coin-ico { width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff3b0, #ffd24a 55%, #d6931a); display: inline-block; }
 .hud-buttons { display: flex; gap: 8px; pointer-events: auto; }
@@ -79,6 +122,9 @@ h2 { margin: 0 0 6px; font-size: clamp(32px, 7vmin, 48px); font-weight: 900; let
 .btn.primary { background: linear-gradient(180deg, #ff7a5c, #ff4f6a); box-shadow: 0 6px 0 #a3243a, 0 10px 24px rgba(0,0,0,.4); }
 .btn.primary:active { box-shadow: 0 2px 0 #a3243a; transform: translateY(4px); }
 .btn.ghost { background: rgba(255,255,255,.1); font-size: 17px; padding: 11px 22px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.btn.small { min-width: 0; font-size: 15px; padding: 9px 16px; }
+.pause-chapter { margin: -2px 0 6px; font: italic 15px Georgia, serif; opacity: .8; }
 .hint { margin: 10px 0 0; font-size: 13px; opacity: .75; max-width: 420px; line-height: 1.4; }
 .rotate-hint { display: none; margin: 0; font-size: 13px; opacity: .7; }
 body.portrait .rotate-hint { display: block; }
@@ -94,7 +140,8 @@ body.portrait .rotate-hint { display: block; }
 
 @media (max-height: 420px) {
   .screen { gap: 6px; }
-  .tagline, .hint { display: none; }
+  .hint { display: none; }
+  .tagline { margin: 0 0 2px; font-size: 14px; }
   .btn { padding: 10px 22px; font-size: 18px; min-width: 200px; }
   .stats { font-size: 14px; }
 }

@@ -20,11 +20,13 @@ and deploys automatically to GitHub Pages on every push. Zero dependencies, zero
 index.html             shell: canvas, HUD, touch layer, title / pause / game-over screens
 css/style.css          full-screen layout, safe-area insets, HUD + overlay styling
 js/main.js             bootstrap, resize/DPR scaling, fixed-step loop, HUD/overlay wiring, PWA
-js/game.js             Game state machine, Player physics, enemies, platforms, pickups, camera
-js/level.js            tile grid + procedural chunk generator (difficulty-aware)
-js/render.js           parallax sky/mountains/clouds/stars, tiles, sprites, particles
+js/game.js             Game state machine, Player physics, enemies, platforms, pickups, camera, chapter beats
+js/level.js            tile grid + procedural chunk generator (chapter- and difficulty-aware)
+js/chapters.js         the book: chapter table (see novel-plan.md)
+js/story.js            narration lines and caption engine
+js/render.js           per-chapter themes, parallax layers, tile skins, sprites, particles, overlays
 js/input.js            keyboard + multi-touch zones (left / right / jump) with edge detection
-js/audio.js            WebAudio synth SFX + looping chiptune music, mute persisted
+js/audio.js            WebAudio synth SFX + per-chapter music arrangements, mute persisted
 js/util.js             rng, lerp, clamp, color helpers
 manifest.webmanifest   installable PWA (landscape, standalone)
 sw.js                  network-first service worker for offline play
@@ -68,7 +70,7 @@ sw.js                  network-first service worker for offline play
 - [x] GitHub Actions → Pages workflow
 - [x] Smoke test in headless Chromium (no console errors, game starts, player moves)
 
-## Next: the novel
+## The novel (built)
 See [novel-plan.md](novel-plan.md): the game slowly turns into a Jonathan Lethem novel as you run.
 
 ## Ideas for later

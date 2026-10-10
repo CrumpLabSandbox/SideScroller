@@ -63,16 +63,28 @@ cross-fade over one chunk so changes feel like a drift, not a level switch.
 10. **Testing**: extend the validator to the new chunks and physics modifiers; a debug
     `?chapter=N` start so the bot can play every chapter.
 
-## Milestones (each one ships to Pages)
-- [ ] **M1 — The frame.** Story engine, captions, theme cross-fade, bookmarks, Prologue + Chapter 1.
-- [ ] **M2 — Brooklyn.** Chapters 2 and 3, ring flight and invisibility.
-- [ ] **M3 — Strange physics.** Chapters 4 and 5, dream regions and the void.
-- [ ] **M4 — The ending.** Chapters 6 and 7, the tiger, the Arrest, Epilogue and afterword mode.
-- [ ] **M5 — Revision.** Full writing pass, music variants, accessibility, playtest tuning.
+## Milestones
+- [x] **M1 — The frame.** Story engine, captions, theme cross-fade, bookmarks, Prologue + Chapter 1.
+- [x] **M2 — Brooklyn.** Chapters 2 and 3, ring flight and invisibility.
+- [x] **M3 — Strange physics.** Chapters 4 and 5, dream regions and the void.
+- [x] **M4 — The ending.** Chapters 6 and 7, the tiger, the Arrest, Epilogue and afterword mode.
+- [x] **M5 — Revision.** Writing pass, music per chapter, narration and text-size settings, render-cost pass,
+      adaptive resolution. Still open: tuning from real playtests on a phone.
 
-## Open decisions
-1. **Finite book or endless loop?** Recommended: a finite book with a real ending, followed by the
-   endless afterword.
-2. **Name the books?** Recommended: yes, through the "after …" chapter cards and the
-   acknowledgments, so the homage is honest and readers can go find the novels.
-3. **Who writes the narration?** Recommended: I draft every line, you edit.
+All five shipped together. Verification used a physics-accurate jump validator over 200 generated books
+(including worst-case tiger collapses and the single-jump Arrest), a look-ahead bot in every chapter,
+targeted tests for each mechanic, and a full start-to-epilogue run.
+
+## Decisions (taken)
+1. **A finite book with a real ending**, followed by the endless afterword.
+2. **The books are named** on the "after …" chapter cards and on the acknowledgments card.
+3. **Claude drafted every line**; all narration lives in `js/story.js` for editing.
+
+## Where things live
+- `js/chapters.js` — chapter table: start distance, theme, music, tile skin, chunk weights, rule caps.
+- `js/story.js` — every line of narration, sign text, headlines, and the caption engine.
+- `js/level.js` — chunk generator; new chunks: `gate`, `ball`, `sign`, `lack`, `collapse`, `billboard`, `vase`.
+- `js/game.js` — chapter beats (`chapterBeats`, `enterChapter`), ring, void, cracks, dream rules.
+- `js/render.js` — themes, skylines, tile skins, overlays (rain, fog, comic panel, dream tint).
+- `js/audio.js` — one arrangement per chapter plus layers the Arrest strips away.
+- Debug: append `?chapter=N` (0–8) to the URL to start at a chapter.
