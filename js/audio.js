@@ -41,11 +41,11 @@ const ARR = {
   },
   hush: {
     bpm: 132, bass: [36, 40, 41, 43, 36, 40, 41, 43], bassMode: 'long',
-    arp: [0, 7, 12, 16, 19, 16, 12, 7], leadWave: 'sine', leadVol: 0.1,
+    arp: [0, 7, 12, 16, 19, 16, 12, 7], leadWave: 'sine', leadVol: 0.16,
   },
   dream: {
     bpm: 84, bass: [41, 45, 43, 40, 41, 45, 38, 40], bassMode: 'long',
-    arp: [0, 7, 12, 14, 19, 14, 12, 7], leadWave: 'sine', leadVol: 0.13,
+    arp: [0, 7, 12, 14, 19, 14, 12, 7], leadWave: 'sine', leadVol: 0.2,
   },
   lack: { bpm: 66, bass: [38, 38, 38, 38, 38, 38, 38, 38], bassMode: 'drone', ping: true },
   gray: { bpm: 72, bass: [40, 40, 40, 40, 41, 41, 40, 40], bassMode: 'drone', cluster: true },
@@ -71,7 +71,7 @@ const ARR = {
   },
   mind: {
     bpm: 72, bass: [38, 41, 45, 43, 38, 41, 36, 40], bassMode: 'long',
-    arp: [0, 7, 12, 16, 19, 16, 12, 7], leadWave: 'sine', leadVol: 0.1, hat: 'type',
+    arp: [0, 7, 12, 16, 19, 16, 12, 7], leadWave: 'sine', leadVol: 0.17, hat: 'type',
   },
   collage: { collage: ['bright', 'noir', 'swing', 'dream', 'arrest', 'flight'] },
 };
@@ -94,17 +94,54 @@ export class Sound {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
       this.ctx = new AC();
+      // a gentle limiter lets everything sit louder without clipping on small speakers
+      const limit = this.ctx.createDynamicsCompressor();
+      limit.threshold.value = -12; limit.knee.value = 8; limit.ratio.value = 6;
+      limit.attack.value = 0.004; limit.release.value = 0.2;
+      limit.connect(this.ctx.destination);
       this.master = this.ctx.createGain();
       this.master.gain.value = this.muted ? 0 : 1;
-      this.master.connect(this.ctx.destination);
+      this.master.connect(limit);
       this.sfx = this.ctx.createGain();
-      this.sfx.gain.value = 0.55;
+      this.sfx.gain.value = 0.9;
       this.sfx.connect(this.master);
       this.mus = this.ctx.createGain();
-      this.mus.gain.value = 0.18;
+      this.mus.gain.value = 0.6;
       this.mus.connect(this.master);
+      this.ctx.addEventListener('statechange', () => { if (this.ctx.state === 'interrupted') this.ctx.resume().catch(() => {}); });
     }
-    if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+    // iOS mutes Web Audio with the ringer switch unless the page is playing "media"
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) { /* unsupported */ }
+    if (!navigator.audioSession && /iP(hone|ad|od)|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document) this.mediaKeepAlive();
+    if (this.ctx.state !== 'running') this.ctx.resume().catch(() => {});
+  }
+
+  // Tab hidden: go quiet (and release the media session) until the next tap.
+  sleep() {
+    if (this._silent) this._silent.pause();
+    if (this.ctx && this.ctx.state === 'running') this.ctx.suspend().catch(() => {});
+  }
+
+  // Older iOS: a silent looping <audio> element switches the page into the playback category.
+  mediaKeepAlive() {
+    if (this._silent) { if (this._silent.paused) this._silent.play().catch(() => {}); return; }
+    const rate = 8000, n = rate / 4, b = new DataView(new ArrayBuffer(44 + n));
+    const str = (o, t) => { for (let i = 0; i < t.length; i++) b.setUint8(o + i, t.charCodeAt(i)); };
+    str(0, 'RIFF'); b.setUint32(4, 36 + n, true); str(8, 'WAVEfmt '); b.setUint32(16, 16, true);
+    b.setUint16(20, 1, true); b.setUint16(22, 1, true); b.setUint32(24, rate, true); b.setUint32(28, rate, true);
+    b.setUint16(32, 1, true); b.setUint16(34, 8, true); str(36, 'data'); b.setUint32(40, n, true);
+    for (let i = 0; i < n; i++) b.setUint8(44 + i, 128);
+    const a = document.createElement('audio');
+    a.src = URL.createObjectURL(new Blob([b.buffer], { type: 'audio/wav' }));
+    a.loop = true; a.setAttribute('playsinline', ''); a.setAttribute('x-webkit-airplay', 'deny');
+    this._silent = a;
+    a.play().catch(() => {});
+  }
+
+  // Bass notes also get a soft octave-up square so the line survives phone speakers.
+  bass(f0, { type = 'triangle', dur, vol, delay, attack = 0.004, presence = 0.32 }) {
+    this.tone({ f0, type, dur, vol, delay, dest: this.mus, attack });
+    if (presence) this.tone({ f0: f0 * 2, type: 'square', dur, vol: vol * presence, delay, dest: this.mus, attack });
   }
 
   setMuted(m) {
@@ -224,13 +261,13 @@ export class Sound {
     const L = this.layers, mus = this.mus;
     if (L.bass) {
       if (A.bassMode === 'pattern' && A.bassPat[beat]) {
-        this.tone({ f0: midi(root), type: 'triangle', dur: stepDur * 0.9, vol: 0.5, delay, dest: mus });
+        this.bass(midi(root), { dur: stepDur * 0.9, vol: 0.5, delay });
       } else if (A.bassMode === 'walk' && beat % 2 === 0) {
-        this.tone({ f0: midi(root + A.walk[beat / 2]), type: 'triangle', dur: stepDur * 1.8, vol: 0.45, delay, dest: mus });
+        this.bass(midi(root + A.walk[beat / 2]), { dur: stepDur * 1.8, vol: 0.45, delay });
       } else if (A.bassMode === 'long' && beat === 0) {
-        this.tone({ f0: midi(root), type: 'sine', dur: stepDur * 7.5, vol: 0.4, delay, dest: mus, attack: 0.05 });
+        this.bass(midi(root), { type: 'sine', dur: stepDur * 7.5, vol: 0.4, delay, attack: 0.05, presence: 0.26 });
       } else if (A.bassMode === 'drone' && beat === 0) {
-        this.tone({ f0: midi(root), type: 'sine', dur: stepDur * 8.6, vol: 0.38, delay, dest: mus, attack: 0.5 });
+        this.bass(midi(root), { type: 'sine', dur: stepDur * 8.6, vol: 0.38, delay, attack: 0.5, presence: 0.16 });
         this.tone({ f0: midi(root + 7), type: 'sine', dur: stepDur * 8.6, vol: 0.12, delay, dest: mus, attack: 0.7 });
         if (A.cluster) this.tone({ f0: midi(root + 13), type: 'sine', dur: stepDur * 8.6, vol: 0.08, delay, dest: mus, attack: 0.9 });
       }

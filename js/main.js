@@ -183,7 +183,7 @@ function showTitle() {
 }
 showTitle();
 
-document.addEventListener('visibilitychange', () => { if (document.hidden) game.pause(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { game.pause(); sound.sleep(); } });
 
 // ---- loop -------------------------------------------------------------------
 const STEP = 1 / 60;
