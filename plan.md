@@ -50,7 +50,7 @@ sw.js                  network-first service worker for offline play
 - **Keyboard**: ← → / A D to move, Space / ↑ / W / Z / K to jump, P or Esc to pause, M to mute.
 
 ## Deployment
-- Push to `main` (or the working branch) → `deploy.yml` uploads the repo root as a Pages artifact
+- Push to `main` → `deploy.yml` uploads the repo root as a Pages artifact
   and deploys it. Repo setting required once: *Settings → Pages → Source: GitHub Actions*.
 - Live URL: `https://<owner>.github.io/<repo>/`. All asset paths are relative so it works from a
   sub-path.
